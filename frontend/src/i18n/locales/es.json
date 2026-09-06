@@ -30,5 +30,11 @@
     "historico": "Cuestionarios anteriores",
     "estatisticas": "Estadísticas",
     "login": "Iniciar sesión/Salir"
+  },
+  "perguntas":{
+    "palavra": "Pregunta: ",
+    "rotulo": "Tu respuesta:",
+    "descricao": "Escribe tu respuesta...",
+    "botao": "Verificar respuestas"
   }
 }

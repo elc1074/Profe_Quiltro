@@ -29,6 +29,11 @@ const router = createRouter({
           path: 'estatisticas',
           name: 'estatisticas',
           component: () => import('../views/EstatisticasView.vue')
+        },
+        {
+          path: 'perguntas',
+          name: 'perguntas',
+          component: () => import('../views/PerguntasView.vue')
         }
       ]
     }

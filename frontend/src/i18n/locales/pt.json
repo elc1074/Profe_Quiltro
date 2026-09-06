@@ -10,7 +10,7 @@
     "create": "Criar questionário",
     "upload": {
       "back": "Voltar",
-      "title": "Arraste e solte um arquivo ou suba um da sua computadora para criar um questionário",
+      "title": "Arraste e solte um arquivo ou selecione do seu computador para criar um questionário",
       "accepted": "Apenas arquivos PDF",
       "invalid_file": "Selecione um arquivo PDF válido."
     },
@@ -30,5 +30,11 @@
     "historico": "Questionários anteriores",
     "estatisticas": "Estatísticas",
     "login": "Logar/Sair"
+  },
+  "perguntas":{
+    "palavra": "Pergunta: ",
+    "rotulo": "Sua resposta:",
+    "descricao": "Escreva sua resposta...",
+    "botao": "Verificar respostas"
   }
 }
