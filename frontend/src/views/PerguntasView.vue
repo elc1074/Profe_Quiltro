@@ -1,5 +1,9 @@
 <template>
   <div class="quiz-container">
+    <p v-if="perguntas.length === 0" class="sem-perguntas">
+      Nenhuma pergunta foi encontrada. Volte e envie o PDF novamente.
+    </p>
+
     <div
       v-for="(pergunta, index) in perguntas"
       :key="pergunta.id"
@@ -22,7 +26,7 @@
           :id="`resposta-${pergunta.id}`"
           v-model="respostas[pergunta.id]"
           class="answer-textarea"
-          placeholder="{{t('perguntas.descricao')}}"
+          :placeholder="t('perguntas.descricao')"
           rows="5"
         />
       </div>
@@ -47,26 +51,20 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import LanguageSwitcher from '../components/LanguageSwitcher.vue'
-import I18nManager from '@/i18n/manager.js'
 
 const { t } = useI18n()
 
 //texto temporário para simular as perguntas
-const props = defineProps({
-  perguntas: {
-    type: Array,
-    default: () => ([
-      { id: 1, pergunta: "Pregunta" },
-      { id: 2, pergunta: "Pregunta" },
-      { id: 3, pergunta: "Pregunta" },
-    ]),
-  },
+const perguntas = computed(() => {
+  try {
+    const perguntasSalvas = JSON.parse(sessionStorage.getItem('profe-quiltro-perguntas') || '[]')
+    return Array.isArray(perguntasSalvas) ? perguntasSalvas : []
+  } catch {
+    return []
+  }
 })
-
-const emit = defineEmits(['verificar'])
 
 //controla quais perguntas estão abertas
 const openQuestions = reactive({ 1: true })
@@ -89,20 +87,33 @@ async function verificarRespostas() {
   verificando.value = true
   resultado.value = null
 
-  const payload = props.perguntas.map((p) => ({
+  const payload = perguntas.value.map((p) => ({
     id: p.id,
     resposta: respostas[p.id] || '',
   }))
 
   try {
-    //const { data } = await axios.post('/api/verificar-respostas', { respostas: payload })
-    //resultado.value = data
+    const urlWebhook = import.meta.env.VITE_N8N_QUIZ_URL
+    if (!urlWebhook) {
+      throw new Error('A URL do webhook n8n não foi configurada.')
+    }
 
-    //temporário
-    await new Promise((r) => setTimeout(r, 800))
-    resultado.value = { mensagem: 'Integração pendente', payload }
+    const resposta = await fetch(urlWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'evaluate',
+        perguntas: perguntas.value,
+        respostas: payload,
+      }),
+    })
 
-    emit('verificar', payload)
+    if (!resposta.ok) {
+      throw new Error(`O n8n retornou o erro ${resposta.status}.`)
+    }
+
+    resultado.value = await resposta.json()
+
   } catch (err) {
     resultado.value = { erro: 'Falha ao verificar respostas.' }
     console.error(err)

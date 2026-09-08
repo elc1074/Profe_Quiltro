@@ -1,8 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 
 const { t } = useI18n()
+const router = useRouter()
+const route = useRoute()
 const modoUpload = ref(false)
 const carregando = ref(false)
 const erroUpload = ref('')
@@ -15,6 +18,21 @@ function abrirSeletorArquivo() {
 function iniciarQuestionario() {
   modoUpload.value = true
   erroUpload.value = ''
+}
+
+function normalizarPerguntas(resposta) {
+  const lista = Array.isArray(resposta)
+    ? resposta
+    : resposta?.perguntas ?? resposta?.questions
+
+  if (!Array.isArray(lista) || lista.length === 0) return []
+
+  return lista
+    .map((item, indice) => ({
+      id: item.id ?? indice + 1,
+      pergunta: item.pergunta ?? item.question ?? item.texto,
+    }))
+    .filter((item) => typeof item.pergunta === 'string' && item.pergunta.trim())
 }
 
 async function validarArquivo(arquivo) {
@@ -30,6 +48,45 @@ async function validarArquivo(arquivo) {
 
   erroUpload.value = ''
   carregando.value = true
+
+  try {
+    const urlWebhook = import.meta.env.VITE_N8N_QUIZ_URL
+    if (!urlWebhook) {
+      throw new Error('A URL do webhook n8n não foi configurada.')
+    }
+
+    const formulario = new FormData()
+    formulario.append('action', 'generate')
+    formulario.append('data', arquivo)
+
+    const resposta = await fetch(urlWebhook, {
+      method: 'POST',
+      body: formulario,
+    })
+
+    if (!resposta.ok) {
+      throw new Error(`O n8n retornou o erro ${resposta.status}.`)
+    }
+
+    const dados = await resposta.json()
+    const perguntas = normalizarPerguntas(dados)
+
+    if (perguntas.length === 0) {
+      console.error('Formato de resposta inesperado do n8n:', dados)
+      throw new Error('O n8n não retornou uma lista de perguntas.')
+    }
+
+    sessionStorage.setItem('profe-quiltro-perguntas', JSON.stringify(perguntas))
+    await router.push({
+      name: 'perguntas',
+      params: { locale: route.params.locale },
+    })
+  } catch (erro) {
+    console.error('Falha ao criar questionário:', erro)
+    erroUpload.value = 'Não foi possível criar o questionário. Tente novamente.'
+  } finally {
+    carregando.value = false
+  }
 }
 
 function selecionarArquivo(event) {
