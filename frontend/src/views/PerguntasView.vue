@@ -1,214 +1,28 @@
-<template>
-  <div class="quiz-container">
-    <p v-if="perguntas.length === 0" class="sem-perguntas">
-      Nenhuma pergunta foi encontrada. Volte e envie o PDF novamente.
-    </p>
-
-    <div
-      v-for="(pergunta, index) in perguntas"
-      :key="pergunta.id"
-      class="question-card"
-    >
-      <button
-        class="question-header"
-        type="button"
-        @click="toggleQuestion(pergunta.id)"
-      >
-        <span>{{ index + 1 }}. {{ pergunta.pergunta }} {{ pergunta.id }}</span>
-        <span class="chevron" :class="{ open: isOpen(pergunta.id) }">⌄</span>
-      </button>
-
-      <div v-show="isOpen(pergunta.id)" class="question-body">
-        <label class="answer-label" :for="`resposta-${pergunta.id}`">
-          {{ t('perguntas.rotulo') }}
-        </label>
-        <textarea
-          :id="`resposta-${pergunta.id}`"
-          v-model="respostas[pergunta.id]"
-          class="answer-textarea"
-          :placeholder="t('perguntas.descricao')"
-          rows="5"
-        />
-      </div>
-    </div>
-
-    <div class="verify-wrapper">
-      <button
-        class="verify-button"
-        type="button"
-        :disabled="verificando"
-        @click="verificarRespostas"
-      >
-        {{ verificando ? 'Verificando...' : 'Verificar Respuestas' }}
-      </button>
-    </div>
-
-    <!--exibe resultado da correção, quando o back responder-->
-    <div v-if="resultado" class="resultado-box">
-      <pre>{{ resultado }}</pre>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
-
-//texto temporário para simular as perguntas
-const perguntas = computed(() => {
-  try {
-    const perguntasSalvas = JSON.parse(sessionStorage.getItem('profe-quiltro-perguntas') || '[]')
-    return Array.isArray(perguntasSalvas) ? perguntasSalvas : []
-  } catch {
-    return []
-  }
-})
-
-//controla quais perguntas estão abertas
-const openQuestions = reactive({ 1: true })
-
-function isOpen(id) {
-  return !!openQuestions[id]
-}
-
-function toggleQuestion(id) {
-  openQuestions[id] = !openQuestions[id]
-}
-
-//guarda as respostas digitadas por id da pergunta
-const respostas = reactive({})
-
-const verificando = ref(false)
-const resultado = ref(null)
-
-async function verificarRespostas() {
-  verificando.value = true
-  resultado.value = null
-
-  const payload = perguntas.value.map((p) => ({
-    id: p.id,
-    resposta: respostas[p.id] || '',
-  }))
-
-  try {
-    const urlWebhook = import.meta.env.VITE_N8N_QUIZ_URL
-    if (!urlWebhook) {
-      throw new Error('A URL do webhook n8n não foi configurada.')
-    }
-
-    const resposta = await fetch(urlWebhook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'evaluate',
-        perguntas: perguntas.value,
-        respostas: payload,
-      }),
-    })
-
-    if (!resposta.ok) {
-      throw new Error(`O n8n retornou o erro ${resposta.status}.`)
-    }
-
-    resultado.value = await resposta.json()
-
-  } catch (err) {
-    resultado.value = { erro: 'Falha ao verificar respostas.' }
-    console.error(err)
-  } finally {
-    verificando.value = false
-  }
-}
+import { useRouter } from 'vue-router'
+import quizText from '../data/mockQuiz.json?raw'
+import I18nManager from '@/i18n/manager'
+import { useQuizSession } from '@/composables/useQuizSession'
+const quiz = JSON.parse(quizText)
+const { t } = useI18n(); const router = useRouter(); const { session } = useQuizSession()
+const current = ref(0); const recording = ref(false); const elapsed = ref(0); const confirmSend = ref(false); let timer
+const question = computed(() => quiz.questions[current.value]); const answered = computed(() => Object.keys(session.recordings).length)
+function format(seconds) { return `00:${String(seconds).padStart(2, '0')}` }
+function toggleRecording() { if (recording.value) { clearInterval(timer); recording.value = false; session.recordings[question.value.id] = Math.max(12, elapsed.value) } else { elapsed.value = 0; recording.value = true; timer = setInterval(() => elapsed.value++, 1000) } }
+function select(index) { if (recording.value) toggleRecording(); current.value = index; elapsed.value = session.recordings[quiz.questions[index].id] || 0 }
+function removeRecording() { delete session.recordings[question.value.id]; elapsed.value = 0 }
+function finish() { if (answered.value < quiz.questions.length) confirmSend.value = true; else send() }
+function send() { clearInterval(timer); router.push(I18nManager.i18nRoute({ name: 'correcao' })) }
+onBeforeUnmount(() => clearInterval(timer))
 </script>
-
-<style scoped>
-.quiz-container {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  font-family: Georgia, 'Times New Roman', serif;
-}
-
-.question-card {
-  background: #dcdcdc;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-
-.question-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: transparent;
-  border: none;
-  padding: 1.1rem 1.3rem;
-  font-size: 1rem;
-  cursor: pointer;
-  text-align: left;
-}
-
-.chevron {
-  transition: transform 0.2s ease;
-  font-size: 1.1rem;
-}
-
-.chevron.open {
-  transform: rotate(180deg);
-}
-
-.question-body {
-  padding: 0 1.3rem 1.3rem;
-}
-
-.answer-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.answer-textarea {
-  width: 100%;
-  min-height: 110px;
-  border: 1px solid #999;
-  border-radius: 4px;
-  padding: 0.75rem;
-  font-family: inherit;
-  font-size: 0.95rem;
-  resize: vertical;
-  box-sizing: border-box;
-}
-
-.verify-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.verify-button {
-  background: #2b2b2b;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.7rem 1.6rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.verify-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.resultado-box {
-  margin-top: 1.5rem;
-  background: #f5f5f5;
-  border-radius: 8px;
-  padding: 1rem;
-  font-size: 0.85rem;
-  overflow-x: auto;
-}
+<template>
+  <main class="quiz-page"><div class="quiz-header"><div><p class="eyebrow">{{ t('quiz.eyebrow', { current: current + 1, total: quiz.questionCount }) }}</p><h1>{{ t('quiz.title') }}</h1></div><div class="answered"><span>✦</span>{{ t('quiz.answered', { count: answered, total: quiz.questionCount }) }}</div></div>
+  <div class="quiz-layout"><aside class="question-index"><p>{{ t('quiz.indexTitle') }}</p><button v-for="(item,index) in quiz.questions" :key="item.id" :class="{ active: index === current, done: session.recordings[item.id] }" @click="select(index)"><span>{{ item.id }}</span><i>{{ session.recordings[item.id] ? '✓' : '·' }}</i></button></aside>
+  <section class="question-panel"><div class="question-top"><span>{{ t('quiz.questionLabel', { number: current + 1 }) }}</span><span class="timer">◷ {{ format(elapsed) }}</span></div><h2>{{ question.prompt }}</h2><div class="audio-studio" :class="{ recording, saved: session.recordings[question.id] && !recording }"><p v-if="recording" class="recording-label"><i></i>{{ t('quiz.recording') }}</p><p v-else-if="session.recordings[question.id]">{{ t('quiz.readyAudio', { time: format(session.recordings[question.id]) }) }}</p><p v-else>{{ t('quiz.readyToRecord') }}</p><div class="wave" aria-hidden="true"><span v-for="n in 18" :key="n"></span></div><button class="microphone" :class="{ stop: recording }" @click="toggleRecording"><span>{{ recording ? '■' : '●' }}</span><b>{{ recording ? t('quiz.stop') : t('quiz.record') }}</b></button><div v-if="session.recordings[question.id] && !recording" class="audio-actions"><button>▶ {{ t('quiz.listen') }}</button><button @click="removeRecording">× {{ t('quiz.rerecord') }}</button></div></div><div class="quiz-navigation"><button :disabled="current === 0" @click="select(current - 1)">← {{ t('quiz.previous') }}</button><button v-if="current < quiz.questions.length - 1" class="next" @click="select(current + 1)">{{ t('quiz.next') }} →</button><button v-else class="send" @click="finish">{{ t('quiz.send') }} →</button></div></section></div>
+  <div v-if="confirmSend" class="modal"><section><span class="modal-leaf">✦</span><h2>{{ t('quiz.pendingTitle') }}</h2><p>{{ t('quiz.pendingDescription', { count: quiz.questionCount - answered }) }}</p><div><button class="secondary" @click="confirmSend = false">{{ t('quiz.review') }}</button><button class="send" @click="send">{{ t('quiz.sendAnyway') }}</button></div></section></div></main>
+</template>
+<style>
+.quiz-page { max-width: 1080px; min-height: calc(100vh - 76px); margin: auto; padding: 3rem 5vw 5rem; }.quiz-header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 2.5rem; }.eyebrow { color: #347158; font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }.quiz-header h1 { margin-top: .45rem; color: #1F5B45; font: 700 clamp(2rem,4vw,3rem) Lora,serif; }.answered { padding: .55rem .8rem; border-radius: 99px; color: #347158; background: #E7F3EA; font-size: .82rem; font-weight: 700; white-space: nowrap; }.quiz-layout { display: grid; grid-template-columns: 180px 1fr; gap: 2rem; }.question-index { padding: .7rem; align-self: start; border-radius: 18px; background: #F2F8F3; }.question-index p { margin: .35rem .45rem .8rem; color: #52705D; font-size: .8rem; font-weight: 800; }.question-index button { width: 100%; padding: .65rem .5rem; display: flex; align-items: center; justify-content: space-between; border: 0; border-radius: 10px; color: #52705D; background: transparent; cursor: pointer; }.question-index button span { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #fff; font-size: .78rem; font-weight: 800; }.question-index button i { color: #A8C7B4; font-style: normal; }.question-index button.done i { color: #2E9E62; }.question-index button.active { color: #fff; background: #1F5B45; }.question-index button.active span { color: #1F5B45; background: #E7F3EA; }.question-panel { padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid #D8E7DC; border-radius: 24px; background: #fff; box-shadow: 0 14px 35px #1f5b4510; }.question-top { display: flex; justify-content: space-between; color: #52705D; font-size: .84rem; font-weight: 800; }.timer { color: #1F5B45; }.question-panel h2 { max-width: 760px; margin: 1.1rem 0 2.5rem; color: #22302A; font: 600 clamp(1.45rem, 3vw, 2rem)/1.35 Lora,serif; }.audio-studio { min-height: 275px; padding: 1.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 20px; color: #52705D; background: #F2F8F3; text-align: center; }.recording-label { color: #C4504B; font-weight: 800; }.recording-label i { display: inline-block; width: 9px; height: 9px; margin-right: .4rem; border-radius: 50%; background: #D95D55; animation: pulse .8s infinite alternate; }.wave { height: 46px; margin: .85rem 0; display: flex; align-items: center; gap: 3px; }.wave span { width: 4px; height: 9px; border-radius: 3px; background: #A8C7B4; }.recording .wave span { background: #D95D55; animation: wave .7s ease-in-out infinite alternate; }.recording .wave span:nth-child(3n) { animation-delay: .18s; }.recording .wave span:nth-child(2n) { animation-delay: .35s; }.microphone { width: 120px; height: 120px; display: grid; place-content: center; gap: .25rem; border: 8px solid #D0E6D6; border-radius: 50%; color: #fff; background: #1F5B45; cursor: pointer; box-shadow: 0 0 0 10px #E7F3EA; }.microphone.stop { background: #D95D55; border-color: #F6D1CE; box-shadow: 0 0 0 10px #FFF0ED; }.microphone span { font-size: 1.7rem; }.microphone b { font-size: .75rem; }.audio-actions { margin-top: 1.3rem; display: flex; gap: .7rem; }.audio-actions button,.quiz-navigation button,.secondary { padding: .65rem .85rem; border: 1px solid #B9D5C2; border-radius: 10px; color: #1F5B45; background: #fff; font-weight: 800; cursor: pointer; }.quiz-navigation { display: flex; justify-content: space-between; margin-top: 2rem; }.quiz-navigation button:disabled { opacity: .35; cursor: not-allowed; }.quiz-navigation .next,.send { color: #fff; background: #1F5B45; border-color: #1F5B45; }.modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1.5rem; background: #10251c99; }.modal section { max-width: 430px; padding: 2.2rem; border-radius: 22px; background: #FAF8F1; text-align: center; }.modal-leaf { color: #347158; font-size: 2rem; }.modal h2 { margin: .7rem 0; color: #1F5B45; font: 700 1.65rem Lora,serif; }.modal p { color: #52705D; line-height: 1.55; }.modal section div { margin-top: 1.5rem; display: flex; justify-content: center; gap: .6rem; }.dark .quiz-header h1,.dark .question-panel h2,.dark .modal h2 { color: #BEE0C9; }.dark .question-panel,.dark .modal section { background: #18382B; border-color: #29503B; }.dark .audio-studio,.dark .question-index { background: #122C20; }.dark .question-top,.dark .audio-studio,.dark .question-index p,.dark .modal p { color: #B8D4C1; }.dark .audio-actions button,.dark .quiz-navigation button,.dark .secondary { color: #BEE0C9; background: #18382B; border-color: #356447; }.dark .quiz-navigation .next,.dark .send { background: #347158; }.dark .answered { background: #18382B; }@keyframes wave { to { height: 40px; } }@keyframes pulse { to { transform: scale(1.5); opacity: .5; } }@media (max-width: 720px) { .quiz-page { padding-top: 2rem; }.quiz-header { align-items: start; flex-direction: column; margin-bottom: 1.3rem; }.quiz-layout { grid-template-columns: 1fr; gap: 1rem; }.question-index { display: flex; align-items: center; gap: .3rem; overflow-x: auto; }.question-index p { display: none; }.question-index button { flex: 0 0 auto; width: 42px; padding: .35rem; }.question-index button i { display: none; }.question-panel { padding: 1.4rem; }.audio-studio { padding: 1.2rem; }.microphone { width: 106px; height: 106px; } }
 </style>

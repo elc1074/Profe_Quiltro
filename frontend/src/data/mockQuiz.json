@@ -1,0 +1,14 @@
+{
+  "id": "anatomia-canina-01",
+  "sourceFile": "anatomia-membro-toracico.pdf",
+  "questionCount": 5,
+  "questions": [
+    { "id": 1, "prompt": "¿Qué hueso conecta la escápula con el antebrazo en el miembro torácico canino?", "studentAnswerLabel": "Respuesta en audio 01", "durationSeconds": 42, "status": "correct", "score": 2, "expectedAnswer": "El húmero conecta la escápula con el radio y la ulna.", "feedback": "¡Excelente! Identificaste correctamente el hueso principal del brazo." },
+    { "id": 2, "prompt": "¿Cuál es la función principal de la escápula durante el movimiento?", "studentAnswerLabel": "Respuesta en audio 02", "durationSeconds": 51, "status": "correct", "score": 2, "expectedAnswer": "Da inserción a músculos y contribuye al movimiento y estabilidad del miembro.", "feedback": "Muy bien explicado. Relacionaste estructura y función." },
+    { "id": 3, "prompt": "Nombra los dos huesos que forman el antebrazo del perro.", "studentAnswerLabel": "Respuesta en audio 03", "durationSeconds": 37, "status": "incorrect", "score": 0, "expectedAnswer": "Radio y ulna (cúbito).", "feedback": "Vas por buen camino: revisa la relación entre radio y ulna antes del próximo intento." },
+    { "id": 4, "prompt": "¿Qué articulación une el húmero con el radio y la ulna?", "studentAnswerLabel": "Sin respuesta", "durationSeconds": 0, "status": "unanswered", "score": 0, "expectedAnswer": "La articulación del codo.", "feedback": "No pasa nada por dejarla en blanco. Esta es una buena pieza para repasar." },
+    { "id": 5, "prompt": "¿Qué estructura ósea forma la punta palpable del codo?", "studentAnswerLabel": "Respuesta en audio 05", "durationSeconds": 46, "status": "correct", "score": 2, "expectedAnswer": "El olécranon de la ulna.", "feedback": "¡Muy bien! Reconociste una referencia anatómica clínica importante." }
+  ],
+  "totalScore": 8,
+  "maxScore": 10
+}
