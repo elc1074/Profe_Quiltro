@@ -11,8 +11,8 @@ const steps = computed(() => [0, 1, 2].map((index) => ({
   description: t(`home.steps[${index}].description`),
 })))
 function chooseFile() { input.value?.click() }
-function setFile(file) { if (file) session.selectedFile = file.name.endsWith('.pdf') ? file.name : `${file.name}.pdf` }
-function removeFile() { session.selectedFile = '' }
+function setFile(file) { if (file) { session.file = file; session.selectedFile = file.name } }
+function removeFile() { session.selectedFile = ''; session.file = null; session.quiz = null }
 function goGenerate() { if (session.selectedFile) router.push(I18nManager.i18nRoute({ name: 'gerando' })) }
 </script>
 <template>

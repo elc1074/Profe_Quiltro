@@ -1,24 +1,24 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import quizText from '../data/mockQuiz.json?raw'
 import I18nManager from '@/i18n/manager'
 import { useQuizSession } from '@/composables/useQuizSession'
-const quiz = JSON.parse(quizText)
 const { t } = useI18n(); const router = useRouter(); const { session } = useQuizSession()
+const quiz = computed(() => session.quiz)
 const current = ref(0); const recording = ref(false); const elapsed = ref(0); const confirmSend = ref(false); let timer
-const question = computed(() => quiz.questions[current.value]); const answered = computed(() => Object.keys(session.recordings).length)
+const question = computed(() => quiz.value?.questions[current.value]); const answered = computed(() => Object.keys(session.recordings).length)
 function format(seconds) { return `00:${String(seconds).padStart(2, '0')}` }
 function toggleRecording() { if (recording.value) { clearInterval(timer); recording.value = false; session.recordings[question.value.id] = Math.max(12, elapsed.value) } else { elapsed.value = 0; recording.value = true; timer = setInterval(() => elapsed.value++, 1000) } }
-function select(index) { if (recording.value) toggleRecording(); current.value = index; elapsed.value = session.recordings[quiz.questions[index].id] || 0 }
+function select(index) { if (recording.value) toggleRecording(); current.value = index; elapsed.value = session.recordings[quiz.value.questions[index].id] || 0 }
 function removeRecording() { delete session.recordings[question.value.id]; elapsed.value = 0 }
-function finish() { if (answered.value < quiz.questions.length) confirmSend.value = true; else send() }
+function finish() { if (answered.value < quiz.value.questions.length) confirmSend.value = true; else send() }
 function send() { clearInterval(timer); router.push(I18nManager.i18nRoute({ name: 'correcao' })) }
+onMounted(() => { if (!session.quiz) router.replace(I18nManager.i18nRoute({ name: 'home' })) })
 onBeforeUnmount(() => clearInterval(timer))
 </script>
 <template>
-  <main class="quiz-page"><div class="quiz-header"><div><p class="eyebrow">{{ t('quiz.eyebrow', { current: current + 1, total: quiz.questionCount }) }}</p><h1>{{ t('quiz.title') }}</h1></div><div class="answered"><span>✦</span>{{ t('quiz.answered', { count: answered, total: quiz.questionCount }) }}</div></div>
+  <main v-if="quiz" class="quiz-page"><div class="quiz-header"><div><p class="eyebrow">{{ t('quiz.eyebrow', { current: current + 1, total: quiz.questionCount }) }}</p><h1>{{ t('quiz.title') }}</h1></div><div class="answered"><span>✦</span>{{ t('quiz.answered', { count: answered, total: quiz.questionCount }) }}</div></div>
   <div class="quiz-layout"><aside class="question-index"><p>{{ t('quiz.indexTitle') }}</p><button v-for="(item,index) in quiz.questions" :key="item.id" :class="{ active: index === current, done: session.recordings[item.id] }" @click="select(index)"><span>{{ item.id }}</span><i>{{ session.recordings[item.id] ? '✓' : '·' }}</i></button></aside>
   <section class="question-panel"><div class="question-top"><span>{{ t('quiz.questionLabel', { number: current + 1 }) }}</span><span class="timer">◷ {{ format(elapsed) }}</span></div><h2>{{ question.prompt }}</h2><div class="audio-studio" :class="{ recording, saved: session.recordings[question.id] && !recording }"><p v-if="recording" class="recording-label"><i></i>{{ t('quiz.recording') }}</p><p v-else-if="session.recordings[question.id]">{{ t('quiz.readyAudio', { time: format(session.recordings[question.id]) }) }}</p><p v-else>{{ t('quiz.readyToRecord') }}</p><div class="wave" aria-hidden="true"><span v-for="n in 18" :key="n"></span></div><button class="microphone" :class="{ stop: recording }" @click="toggleRecording"><span>{{ recording ? '■' : '●' }}</span><b>{{ recording ? t('quiz.stop') : t('quiz.record') }}</b></button><div v-if="session.recordings[question.id] && !recording" class="audio-actions"><button>▶ {{ t('quiz.listen') }}</button><button @click="removeRecording">× {{ t('quiz.rerecord') }}</button></div></div><div class="quiz-navigation"><button :disabled="current === 0" @click="select(current - 1)">← {{ t('quiz.previous') }}</button><button v-if="current < quiz.questions.length - 1" class="next" @click="select(current + 1)">{{ t('quiz.next') }} →</button><button v-else class="send" @click="finish">{{ t('quiz.send') }} →</button></div></section></div>
   <div v-if="confirmSend" class="modal"><section><span class="modal-leaf">✦</span><h2>{{ t('quiz.pendingTitle') }}</h2><p>{{ t('quiz.pendingDescription', { count: quiz.questionCount - answered }) }}</p><div><button class="secondary" @click="confirmSend = false">{{ t('quiz.review') }}</button><button class="send" @click="send">{{ t('quiz.sendAnyway') }}</button></div></section></div></main>
