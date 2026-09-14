@@ -8,7 +8,7 @@ import { KrokoLiveTranscription } from '@/services/krokoLiveTranscription'
 
 const { t, locale } = useI18n()
 const router = useRouter()
-const { session } = useQuizSession()
+const { session, evaluate } = useQuizSession()
 const quiz = computed(() => session.quiz)
 const current = ref(0)
 const recording = ref(false)
@@ -17,6 +17,8 @@ const confirmSend = ref(false)
 const liveTranscript = ref('')
 const transcriptionStatus = ref('')
 const transcriptionError = ref('')
+const evaluating = ref(false)
+const evaluationError = ref('')
 let timer
 let activeTranscription = null
 let recordingQuestionId = null
@@ -99,9 +101,11 @@ function removeRecording() {
 async function finish() {
   if (recording.value) await stopRecording()
   if (answered.value < quiz.value.questions.length) confirmSend.value = true
-  else send()
+  else await send()
 }
-function send() {
+async function send() {
+  if (evaluating.value) return
+  evaluationError.value = ''
   for (const item of quiz.value.questions) {
     const answer = session.recordings[item.id]
     if (answer && typeof answer !== 'number') {
@@ -109,8 +113,16 @@ function send() {
       item.studentAnswerLabel = answer.transcript.trim() || 'Resposta em áudio sem transcrição.'
     }
   }
-  clearInterval(timer)
-  router.push(I18nManager.i18nRoute({ name: 'correcao' }))
+  try {
+    evaluating.value = true
+    await evaluate()
+    clearInterval(timer)
+    router.push(I18nManager.i18nRoute({ name: 'correcao' }))
+  } catch (error) {
+    evaluationError.value = error.message || 'Não foi possível avaliar as respostas.'
+  } finally {
+    evaluating.value = false
+  }
 }
 onMounted(() => { if (!session.quiz) router.replace(I18nManager.i18nRoute({ name: 'home' })) })
 onBeforeUnmount(async () => { clearInterval(timer); await activeTranscription?.cancel() })
@@ -136,10 +148,11 @@ onBeforeUnmount(async () => { clearInterval(timer); await activeTranscription?.c
           <section v-else-if="savedRecording" class="transcript-editor"><label :for="`transcript-${question.id}`">Revise sua resposta antes de enviar</label><textarea :id="`transcript-${question.id}`" v-model="savedRecording.transcript" rows="5" spellcheck="true" /><p>Você pode corrigir qualquer palavra reconhecida incorretamente.</p></section>
           <div v-if="savedRecording && !recording" class="audio-actions"><audio v-if="savedRecording.audioUrl" :src="savedRecording.audioUrl" controls /><button @click="removeRecording">× {{ t('quiz.rerecord') }}</button></div>
         </div>
-        <div class="quiz-navigation"><button :disabled="current === 0" @click="select(current - 1)">← {{ t('quiz.previous') }}</button><button v-if="current < quiz.questions.length - 1" class="next" @click="select(current + 1)">{{ t('quiz.next') }} →</button><button v-else class="send" @click="finish">{{ t('quiz.send') }} →</button></div>
+        <p v-if="evaluationError" class="transcription-error" role="alert">{{ evaluationError }}</p>
+        <div class="quiz-navigation"><button :disabled="current === 0 || evaluating" @click="select(current - 1)">← {{ t('quiz.previous') }}</button><button v-if="current < quiz.questions.length - 1" class="next" :disabled="evaluating" @click="select(current + 1)">{{ t('quiz.next') }} →</button><button v-else class="send" :disabled="evaluating" @click="finish">{{ evaluating ? 'Avaliando respostas…' : `${t('quiz.send')} →` }}</button></div>
       </section>
     </div>
-    <div v-if="confirmSend" class="modal"><section><span class="modal-leaf">✦</span><h2>{{ t('quiz.pendingTitle') }}</h2><p>{{ t('quiz.pendingDescription', { count: quiz.questionCount - answered }) }}</p><div><button class="secondary" @click="confirmSend = false">{{ t('quiz.review') }}</button><button class="send" @click="send">{{ t('quiz.sendAnyway') }}</button></div></section></div>
+    <div v-if="confirmSend" class="modal"><section><span class="modal-leaf">✦</span><h2>{{ t('quiz.pendingTitle') }}</h2><p>{{ t('quiz.pendingDescription', { count: quiz.questionCount - answered }) }}</p><div><button class="secondary" :disabled="evaluating" @click="confirmSend = false">{{ t('quiz.review') }}</button><button class="send" :disabled="evaluating" @click="send">{{ evaluating ? 'Avaliando respostas…' : t('quiz.sendAnyway') }}</button></div></section></div>
   </main>
 </template>
 
