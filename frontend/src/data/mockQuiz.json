@@ -3,12 +3,62 @@
   "sourceFile": "anatomia-membro-toracico.pdf",
   "questionCount": 5,
   "questions": [
-    { "id": 1, "prompt": "¿Qué hueso conecta la escápula con el antebrazo en el miembro torácico canino?", "studentAnswerLabel": "Respuesta en audio 01", "durationSeconds": 42, "status": "correct", "score": 2, "expectedAnswer": "El húmero conecta la escápula con el radio y la ulna.", "feedback": "¡Excelente! Identificaste correctamente el hueso principal del brazo." },
-    { "id": 2, "prompt": "¿Cuál es la función principal de la escápula durante el movimiento?", "studentAnswerLabel": "Respuesta en audio 02", "durationSeconds": 51, "status": "correct", "score": 2, "expectedAnswer": "Da inserción a músculos y contribuye al movimiento y estabilidad del miembro.", "feedback": "Muy bien explicado. Relacionaste estructura y función." },
-    { "id": 3, "prompt": "Nombra los dos huesos que forman el antebrazo del perro.", "studentAnswerLabel": "Respuesta en audio 03", "durationSeconds": 37, "status": "incorrect", "score": 0, "expectedAnswer": "Radio y ulna (cúbito).", "feedback": "Vas por buen camino: revisa la relación entre radio y ulna antes del próximo intento." },
-    { "id": 4, "prompt": "¿Qué articulación une el húmero con el radio y la ulna?", "studentAnswerLabel": "Sin respuesta", "durationSeconds": 0, "status": "unanswered", "score": 0, "expectedAnswer": "La articulación del codo.", "feedback": "No pasa nada por dejarla en blanco. Esta es una buena pieza para repasar." },
-    { "id": 5, "prompt": "¿Qué estructura ósea forma la punta palpable del codo?", "studentAnswerLabel": "Respuesta en audio 05", "durationSeconds": 46, "status": "correct", "score": 2, "expectedAnswer": "El olécranon de la ulna.", "feedback": "¡Muy bien! Reconociste una referencia anatómica clínica importante." }
+    {
+      "id": 1,
+      "prompt": "Descreva as principais estruturas ósseas que compõem o membro torácico do cão, da escápula até a falange distal.",
+      "studentAnswerLabel": "Resposta em áudio 01",
+      "durationSeconds": 42,
+      "status": "correct",
+      "score": 2,
+      "maxScore": 2,
+      "expectedAnswer": "Escápula, úmero, rádio e ulna, ossos do carpo, metacarpos e falanges (proximal, média e distal).",
+      "feedback": "Ótima resposta! Você citou todas as estruturas na ordem correta e ainda destacou a articulação escápulo-umeral. Continue assim."
+    },
+    {
+      "id": 2,
+      "prompt": "Qual é a função do músculo tríceps braquial na locomoção do cão?",
+      "studentAnswerLabel": "Resposta em áudio 02",
+      "durationSeconds": 35,
+      "status": "incorrect",
+      "score": 0,
+      "maxScore": 2,
+      "expectedAnswer": "O tríceps braquial é o principal extensor da articulação do cotovelo, essencial para sustentar o peso durante a fase de apoio.",
+      "feedback": "Você descreveu a função de flexão, mas o tríceps braquial é na verdade o extensor do cotovelo. Vale revisar a origem nas três cabeças do músculo antes da próxima revisão."
+    },
+    {
+      "id": 3,
+      "prompt": "Explique a diferença entre articulações sinoviais e cartilaginosas, citando um exemplo de cada uma no esqueleto apendicular.",
+      "studentAnswerLabel": "Resposta em áudio 03",
+      "durationSeconds": 51,
+      "status": "correct",
+      "score": 2,
+      "maxScore": 2,
+      "expectedAnswer": "Sinoviais possuem cápsula e líquido sinovial, permitindo maior amplitude de movimento (ex.: articulação do cotovelo). Cartilaginosas são unidas por cartilagem, com movimento limitado (ex.: sínfise pélvica).",
+      "feedback": "Explicação clara e com exemplos corretos. Dá para perceber que você entendeu bem o conceito de amplitude de movimento."
+    },
+    {
+      "id": 4,
+      "prompt": "Quais nervos formam o plexo braquial e qual sua importância clínica na avulsão de plexo?",
+      "studentAnswerLabel": "",
+      "durationSeconds": 0,
+      "status": "unanswered",
+      "score": 0,
+      "maxScore": 2,
+      "expectedAnswer": "O plexo braquial é formado pelos ramos ventrais de C6 a T2, incluindo os nervos radial, mediano, ulnar, musculocutâneo e axilar. Sua avulsão pode causar monoparesia do membro torácico.",
+      "feedback": "Essa pergunta ficou sem resposta. Vale a pena revisar o trajeto dos nervos radial, mediano e ulnar antes do próximo quiz."
+    },
+    {
+      "id": 5,
+      "prompt": "Descreva os limites anatômicos e o conteúdo da fossa do olécrano.",
+      "studentAnswerLabel": "Resposta em áudio 05",
+      "durationSeconds": 38,
+      "status": "correct",
+      "score": 2,
+      "maxScore": 2,
+      "expectedAnswer": "A fossa do olécrano está localizada na face caudal do úmero distal e acomoda o olécrano da ulna durante a extensão do cotovelo.",
+      "feedback": "Resposta precisa e objetiva, exatamente o que se espera nessa questão."
+    }
   ],
-  "totalScore": 8,
+  "totalScore": 6,
   "maxScore": 10
 }

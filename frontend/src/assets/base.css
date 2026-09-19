@@ -1,9 +1,0 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Nunito+Sans:wght@400;500;600;700;800&display=swap');
-
-:root { font-family: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif; color: #22302A; background: #FAF8F1; font-synthesis: none; }
-* { box-sizing: border-box; margin: 0; }
-body { min-width: 320px; min-height: 100vh; background: #FAF8F1; }
-button, input { font: inherit; }
-button { -webkit-tap-highlight-color: transparent; }
-:root.dark { color: #EAF3EC; background: #10251C; }
-:root.dark body { background: #10251C; }

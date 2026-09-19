@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vueuse/core": "^15.0.0",
+    "pinia": "^4.0.3",
     "vue": "^3.5.40",
     "vue-i18n": "^9.14.5",
     "vue-router": "^5.2.0"
@@ -16,6 +18,9 @@
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^4.0.0",
     "@vitejs/plugin-vue": "^6.0.8",
+    "autoprefixer": "^10.6.0",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
     "vite": "^7.3.6",
     "vite-plugin-vue-devtools": "^8.1.5"
   },

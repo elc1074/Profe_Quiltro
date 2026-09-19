@@ -1,27 +1,61 @@
 <script setup>
-import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import I18nManager from '@/i18n/manager'
-import { useQuizSession } from '@/composables/useQuizSession'
-const { t } = useI18n(); const router = useRouter(); const { session } = useQuizSession()
-const input = ref(null); const isDragOver = ref(false)
-const steps = computed(() => [0, 1, 2].map((index) => ({
-  title: t(`home.steps[${index}].title`),
-  description: t(`home.steps[${index}].description`),
-})))
-function chooseFile() { input.value?.click() }
-function setFile(file) { if (file) { session.file = file; session.selectedFile = file.name } }
-function removeFile() { session.selectedFile = ''; session.file = null; session.quiz = null }
-function goGenerate() { if (session.selectedFile) router.push(I18nManager.i18nRoute({ name: 'gerando' })) }
+import BaseButton from '../components/BaseButton.vue'
+import MascotFull from '../components/MascotFull.vue'
+
+const { t } = useI18n()
+const router = useRouter()
+
+const steps = [
+  { title: 'step1Title', body: 'step1Body', icon: 'upload' },
+  { title: 'step2Title', body: 'step2Body', icon: 'mic' },
+  { title: 'step3Title', body: 'step3Body', icon: 'heart' },
+]
 </script>
+
 <template>
-  <main class="home">
-    <section class="hero"><div class="hero-copy"><p class="eyebrow">{{ t('home.eyebrow') }}</p><h1>{{ t('home.title') }}</h1><p class="lead">{{ t('home.subtitle') }}</p><button class="primary" @click="document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth' })">{{ t('home.create') }} <span>→</span></button></div><div class="hero-art" aria-hidden="true"><span class="leaf leaf-one">●</span><span class="leaf leaf-two">●</span><div class="art-book">⌁<small>ANATOMÍA</small></div><div class="art-dog">◖</div></div></section>
-    <section class="steps"><article v-for="(step, index) in steps" :key="step.title"><span>0{{ index + 1 }}</span><h2>{{ step.title }}</h2><p>{{ step.description }}</p></article></section>
-    <section id="upload" class="upload-section"><div><p class="eyebrow">{{ t('upload.eyebrow') }}</p><h2>{{ t('upload.title') }}</h2><p>{{ t('upload.description') }}</p></div><div class="upload-card" :class="{ dragging: isDragOver, selected: session.selectedFile }" @dragover.prevent="isDragOver = true" @dragleave="isDragOver = false" @drop.prevent="isDragOver = false; setFile($event.dataTransfer.files[0])"><input ref="input" type="file" accept="application/pdf,.pdf" @change="setFile($event.target.files[0])" /><template v-if="!session.selectedFile"><span class="upload-icon">↥</span><strong>{{ t('upload.drop') }}</strong><span>{{ t('upload.or') }}</span><button class="text-button" @click="chooseFile">{{ t('upload.choose') }}</button><small>{{ t('upload.hint') }}</small></template><template v-else><span class="file-icon">⌑</span><strong>{{ session.selectedFile }}</strong><small>PDF · 2.4 MB · {{ t('upload.ready') }}</small><div><button class="replace" @click="chooseFile">{{ t('upload.replace') }}</button><button class="replace remove" @click="removeFile">{{ t('upload.remove') }}</button></div></template></div><div class="quiz-length"><span>✦</span><p><strong>{{ t('upload.countTitle') }}</strong>{{ t('upload.countDescription') }}</p></div><button class="primary generate" :disabled="!session.selectedFile" @click="goGenerate">{{ t('upload.generate') }} <span>→</span></button></section>
-  </main>
+  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
+    <section class="grid items-center gap-10 sm:grid-cols-2">
+      <div>
+        <h1 class="max-w-md text-3xl font-semibold leading-tight text-lagoon dark:text-cream-soft sm:text-4xl">
+          {{ t('home.title') }}
+        </h1>
+        <p class="mt-4 max-w-md text-base text-lagoon/70 dark:text-cream-soft/70">
+          {{ t('home.subtitle') }}
+        </p>
+        <BaseButton size="lg" class="mt-8" @click="router.push('/enviar')">
+          {{ t('home.cta') }}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </BaseButton>
+      </div>
+      <div class="flex justify-center rounded-blob bg-blush-soft py-10 dark:bg-lagoon-light/40">
+        <MascotFull :size="200" />
+      </div>
+    </section>
+
+    <section class="mt-16">
+      <h2 class="font-display text-xl font-semibold text-lagoon dark:text-cream-soft">{{ t('home.stepsTitle') }}</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-3">
+        <div
+          v-for="step in steps"
+          :key="step.title"
+          class="rounded-xl2 bg-cream p-5 shadow-soft dark:bg-lagoon-light/50 dark:shadow-softDark"
+        >
+          <div class="mb-3 grid h-11 w-11 place-items-center rounded-full bg-sage/20 text-sage-dark dark:bg-sage/25 dark:text-sage-light">
+            <svg v-if="step.icon === 'upload'" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <svg v-else-if="step.icon === 'mic'" width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="2" /><path d="M6 11a6 6 0 0 0 12 0M12 19v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 20.5s-7.5-4.6-9.7-9.2C.7 7.8 2.4 4.6 5.6 4c2-.4 3.8.5 5 2.1a5.4 5.4 0 0 1 5-2.1c3.2.6 4.9 3.8 3.3 7.3-2.2 4.6-9.7 9.2-9.7 9.2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>
+          </div>
+          <h3 class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t(`home.${step.title}`) }}</h3>
+          <p class="mt-1 text-sm text-lagoon/65 dark:text-cream-soft/65">{{ t(`home.${step.body}`) }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-10 rounded-xl2 border border-dashed border-lagoon/20 p-5 dark:border-cream-soft/20">
+      <p class="font-display text-sm font-semibold text-lagoon/70 dark:text-cream-soft/70">{{ t('home.futureTitle') }}</p>
+      <p class="mt-1 text-sm text-lagoon/55 dark:text-cream-soft/55">{{ t('home.futureBody') }}</p>
+    </section>
+  </div>
 </template>
-<style>
-.home { overflow: hidden; }.hero,.upload-section { max-width: 1160px; margin: auto; padding: 5.5rem 5vw; }.hero { min-height: 530px; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 3rem; }.eyebrow { color: #347158; font-size: .76rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }.hero h1,.upload-section h2 { max-width: 620px; margin: .7rem 0 1.1rem; color: #1F5B45; font: 700 clamp(2.4rem, 5vw, 4.6rem)/1.08 Lora, Georgia, serif; }.lead,.upload-section > div > p:not(.eyebrow) { max-width: 540px; color: #52705D; font-size: 1.12rem; line-height: 1.65; }.primary { margin-top: 2rem; padding: .92rem 1.25rem; border: 0; border-radius: 999px; background: #1F5B45; color: #fff; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px #1f5b4530; }.primary span { margin-left: .45rem; font-size: 1.2em; }.primary:disabled { cursor: not-allowed; opacity: .42; box-shadow: none; }.hero-art { min-height: 370px; position: relative; border-radius: 46% 54% 45% 55% / 56% 43% 57% 44%; background: #E7F3EA; }.art-book { position: absolute; top: 28%; left: 25%; display: grid; place-items: center; width: 170px; height: 200px; border-radius: 10px 28px 28px 10px; color: #1F5B45; background: #FAF8F1; box-shadow: 12px 12px 0 #A8C7B4; font: 4rem Lora,serif; transform: rotate(-10deg); }.art-book small { font: 800 .54rem 'Nunito Sans'; letter-spacing: .12em; }.art-dog { position: absolute; right: 13%; bottom: 14%; display: grid; place-items: center; width: 94px; height: 94px; border-radius: 48% 52% 46% 54%; color: #fff; background: #347158; font-size: 4.5rem; transform: rotate(-30deg); }.leaf { position: absolute; color: #A8C7B4; font-size: 4rem; }.leaf-one { top: 14%; right: 17%; }.leaf-two { bottom: 7%; left: 9%; color: #6EAA80; }.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; padding: 0 5vw; background: #CFE2D5; }.steps article { padding: 2.25rem max(1.5rem, 8%); background: #F2F8F3; }.steps span { color: #6EAA80; font: 700 1.4rem Lora,serif; }.steps h2 { margin: .65rem 0; color: #1F5B45; font-size: 1.12rem; }.steps p { color: #52705D; line-height: 1.5; }.upload-section { display: grid; grid-template-columns: .8fr 1.2fr; gap: 2rem 4.5rem; padding-top: 7rem; padding-bottom: 6rem; }.upload-section h2 { font-size: clamp(2rem,4vw,3rem); }.upload-card { min-height: 250px; padding: 2rem; border: 2px dashed #9CBFA7; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .45rem; color: #52705D; text-align: center; background: #F2F8F3; transition: .2s; }.upload-card.dragging { border-color: #1F5B45; background: #E7F3EA; }.upload-card.selected { border-style: solid; }.upload-card input { display: none; }.upload-card strong { color: #1F5B45; }.upload-icon,.file-icon { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: .5rem; border-radius: 18px; color: #fff; background: #347158; font-size: 1.75rem; }.file-icon { background: #6EAA80; }.upload-card small { font-size: .78rem; }.text-button,.replace { border: 0; color: #1F5B45; background: transparent; font-weight: 800; text-decoration: underline; cursor: pointer; }.replace { margin-top: .5rem; }.quiz-length { display: flex; gap: .75rem; align-self: end; padding: 1rem 0; color: #52705D; }.quiz-length span { color: #347158; font-size: 1.3rem; }.quiz-length p { display: grid; gap: .15rem; font-size: .9rem; }.quiz-length strong { color: #1F5B45; }.generate { justify-self: start; align-self: end; margin: 0; }.dark .hero h1,.dark .upload-section h2,.dark .steps h2,.dark .upload-card strong,.dark .quiz-length strong { color: #BEE0C9; }.dark .lead,.dark .upload-section > div > p:not(.eyebrow),.dark .steps p,.dark .upload-card,.dark .quiz-length { color: #B8D4C1; }.dark .hero-art,.dark .upload-card { background: #18382B; }.dark .art-book { background: #EAF3EC; }.dark .steps { background: #29503B; }.dark .steps article { background: #122C20; }@media (max-width: 720px) { .hero { grid-template-columns: 1fr; padding-top: 3.7rem; }.hero-art { min-height: 270px; }.art-book { width: 130px; height: 155px; left: 20%; }.steps,.upload-section { grid-template-columns: 1fr; }.upload-section { padding-top: 4rem; gap: 1.5rem; }.generate { justify-self: stretch; }.generate.primary { width: 100%; }.steps article { padding: 1.5rem 5vw; } }
-</style>

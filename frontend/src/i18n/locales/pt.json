@@ -1,9 +1,120 @@
 {
-  "common": { "toggleTheme": "Alternar modo claro ou escuro" },
-  "home": { "eyebrow": "Estude no seu ritmo", "title": "Seu material vira uma conversa de estudo.", "subtitle": "Envie um PDF de anatomia, responda falando e receba uma correção feita para você.", "create": "Criar novo quiz", "steps": [{ "title": "Envie seu PDF", "description": "Use seu próprio material da disciplina." }, { "title": "Fale suas respostas", "description": "Revise com perguntas curtas, uma por vez." }, { "title": "Aprenda com o retorno", "description": "Veja seus acertos e o que revisar." }] },
-  "upload": { "eyebrow": "Seu material", "title": "Vamos começar pelo seu PDF", "description": "Nesta versão, prepararemos 5 perguntas para uma revisão leve e focada.", "drop": "Arraste seu PDF aqui", "or": "ou", "choose": "escolha um arquivo", "hint": "PDF · até 20 MB", "ready": "Material pronto para o quiz", "replace": "Trocar arquivo", "remove": "Remover", "countTitle": "5 perguntas", "countDescription": "Em breve, você poderá escolher entre 5 ou 10.", "generate": "Gerar quiz" },
-  "generation": { "eyebrow": "Criando seu quiz", "title": "Estamos preparando suas perguntas", "defaultFile": "material-de-anatomia.pdf", "steps": ["Lendo seu material", "Escolhendo conceitos importantes", "Cultivando perguntas para você"], "note": "Estamos usando o seu material para criar perguntas.", "retry": "Tentar novamente", "back": "Voltar ao início", "error": "Não foi possível gerar as perguntas." },
-  "quiz": { "eyebrow": "Pergunta {current} de {total}", "title": "Respire, pense e responda.", "answered": "{count} de {total} respondidas", "indexTitle": "Seu caminho", "questionLabel": "Pergunta {number}", "readyToRecord": "Quando estiver pronto, grave sua resposta.", "recording": "Gravando sua resposta", "readyAudio": "Áudio pronto · {time}", "record": "Gravar", "stop": "Parar", "listen": "Ouvir", "rerecord": "Regravar", "previous": "Anterior", "next": "Próxima", "send": "Enviar para correção", "pendingTitle": "Ainda há respostas em branco", "pendingDescription": "Você deixou {count} pergunta(s) sem resposta. Pode revisar ou enviar mesmo assim.", "review": "Revisar", "sendAnyway": "Enviar mesmo assim" },
-  "correction": { "eyebrow": "Correção em andamento", "title": "O Profe está ouvindo com atenção", "description": "Estamos organizando seus pontos fortes e os temas que merecem mais uma visita." },
-  "result": { "eyebrow": "Sua colheita de hoje", "title": "Você avançou bastante.", "subtitle": "Você acertou {correct} questões. Veja cada detalhe e siga cultivando seu conhecimento.", "score": "nota total", "totalTime": "tempo total", "reviewEyebrow": "Revisão guiada", "reviewTitle": "Uma pergunta por vez", "newQuiz": "Novo quiz", "questionScore": "nota da questão", "time": "tempo usado", "yourAnswer": "sua resposta", "noAnswer": "Nenhuma resposta foi gravada.", "expectedAnswer": "resposta esperada", "status": { "correct": "Correta", "incorrect": "Para revisar", "unanswered": "Sem resposta" } }
+  "app": {
+    "name": "Profe Michi",
+    "tagline": "Revise anatomia veterinária com sua voz"
+  },
+  "nav": {
+    "home": "Início",
+    "newQuiz": "Novo quiz",
+    "profile": "Perfil",
+    "history": "Histórico",
+    "soon": "Em breve",
+    "theme": "Alternar tema"
+  },
+  "home": {
+    "title": "Estude anatomia respondendo em voz alta",
+    "subtitle": "Envie o material da sua disciplina, responda as perguntas falando e receba uma correção acolhedora em minutos.",
+    "cta": "Novo quiz",
+    "stepsTitle": "Como funciona",
+    "step1Title": "1. Envie seu PDF",
+    "step1Body": "Compartilhe a apostila ou o material que quer revisar.",
+    "step2Title": "2. Responda por áudio",
+    "step2Body": "Explique cada resposta falando, sem pressa.",
+    "step3Title": "3. Receba feedback",
+    "step3Body": "Profe Michi corrige e traz comentários para você evoluir.",
+    "futureTitle": "Em breve",
+    "futureBody": "Login, perfil e histórico de quizzes chegam nas próximas versões."
+  },
+  "upload": {
+    "title": "Envie o material de estudo",
+    "subtitle": "Usaremos seu PDF para gerar um quiz de 5 perguntas.",
+    "dropTitle": "Arraste seu PDF aqui",
+    "dropSubtitle": "ou procure o arquivo no computador",
+    "browse": "Escolher arquivo",
+    "fileReady": "Arquivo pronto",
+    "remove": "Remover",
+    "replace": "Substituir",
+    "questionCountLabel": "Perguntas neste quiz",
+    "questionCountNote": "Por enquanto cada quiz tem 5 perguntas. Em breve você poderá escolher entre 5 ou 10.",
+    "cta": "Gerar quiz",
+    "noFileHint": "Envie um PDF para continuar",
+    "invalidType": "Esse arquivo não é um PDF. Tente outro."
+  },
+  "generating": {
+    "title": "Preparando suas perguntas",
+    "subtitle": "Profe Michi está lendo seu material e montando o quiz.",
+    "step1": "Lendo o PDF…",
+    "step2": "Identificando os temas principais…",
+    "step3": "Redigindo as perguntas com IA…",
+    "step4": "Dando os últimos retoques…",
+    "aiNote": "As perguntas são elaboradas automaticamente a partir do seu material."
+  },
+  "quiz": {
+    "questionLabel": "Pergunta {current} de {total}",
+    "index": "Perguntas",
+    "state": {
+      "current": "Atual",
+      "answered": "Respondida",
+      "unanswered": "Pendente"
+    },
+    "timer": "Tempo nesta pergunta",
+    "recorder": {
+      "idleTitle": "Toque para gravar sua resposta",
+      "idleHint": "Explique a resposta com suas palavras, com calma.",
+      "recordingTitle": "Gravando…",
+      "recordingHint": "Toque para parar quando terminar.",
+      "readyTitle": "Gravação pronta",
+      "readyHint": "Você pode ouvir ou regravar se quiser.",
+      "play": "Reproduzir",
+      "pause": "Pausar",
+      "reRecord": "Regravar",
+      "delete": "Excluir gravação",
+      "start": "Gravar",
+      "stop": "Parar"
+    },
+    "prev": "Anterior",
+    "next": "Próxima",
+    "submit": "Enviar respostas para correção",
+    "unansweredDialog": {
+      "title": "Você tem perguntas sem resposta",
+      "bodyOne": "Você deixou 1 pergunta em branco.",
+      "bodyMany": "Você deixou {count} perguntas em branco.",
+      "review": "Revisar perguntas",
+      "submitAnyway": "Enviar mesmo assim"
+    }
+  },
+  "grading": {
+    "title": "Corrigindo suas respostas",
+    "subtitle": "Profe Michi está ouvindo e avaliando cada resposta.",
+    "note": "Isto é uma simulação: nada é enviado a um servidor real ainda."
+  },
+  "result": {
+    "title": "Resultado do quiz",
+    "totalScoreLabel": "Nota total",
+    "correct": "Acertos",
+    "incorrect": "Erros",
+    "unanswered": "Sem resposta",
+    "questionsTitle": "Detalhe por pergunta",
+    "yourAnswer": "Sua resposta",
+    "noAnswer": "Você não respondeu esta pergunta",
+    "expectedAnswer": "Resposta esperada",
+    "feedback": "Comentário",
+    "timeSpent": "Tempo utilizado",
+    "newQuiz": "Iniciar novo quiz",
+    "historySoon": "Em breve você poderá salvar e consultar seu histórico aqui.",
+    "status": {
+      "correct": "Correta",
+      "incorrect": "Incorreta",
+      "unanswered": "Sem resposta"
+    },
+    "mascotCaption": "Muito bem! Profe Michi está orgulhosa de você."
+  },
+  "error": {
+    "title": "Algo deu errado",
+    "body": "Não conseguimos concluir essa ação. Você pode tentar novamente.",
+    "retry": "Tentar novamente"
+  },
+  "common": {
+    "back": "Voltar"
+  }
 }
