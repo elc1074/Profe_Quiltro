@@ -1,4 +1,4 @@
-<!-- LanguageSwitcher.vue -->
+<!-- LocaleSwitcher.vue -->
 <script setup>
 import { computed } from "vue";
 import I18nManager from "@/i18n/manager";
