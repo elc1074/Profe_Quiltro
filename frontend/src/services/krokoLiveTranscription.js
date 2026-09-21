@@ -108,6 +108,12 @@ async function getRecognizer(language, onLoading) {
   }
 }
 
+// Starts the download and initialization ahead of recording. Subsequent
+// recordings reuse the recognizer cached by language above.
+export async function preloadLiveTranscription(language) {
+  await getRecognizer(language)
+}
+
 function downsample(samples, inputSampleRate) {
   if (inputSampleRate === SAMPLE_RATE) return samples
 

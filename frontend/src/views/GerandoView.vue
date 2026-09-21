@@ -4,10 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import I18nManager from '@/i18n/manager'
 import { useQuizSession } from '@/composables/useQuizSession'
-const { t } = useI18n(); const router = useRouter(); const { session, generate } = useQuizSession(); const step = ref(0); const error = ref(''); const loading = ref(true)
+import { preloadLiveTranscription } from '@/services/krokoLiveTranscription'
+const { t, locale } = useI18n(); const router = useRouter(); const { session, generate } = useQuizSession(); const step = ref(0); const error = ref(''); const loading = ref(true)
 const steps = computed(() => [0, 1, 2].map((index) => t(`generation.steps[${index}]`))); let interval
 async function createQuiz() {
   if (!session.file) { router.replace(I18nManager.i18nRoute({ name: 'home' })); return }
+  // Preload the speech model while n8n generates the questions. A failure is
+  // handled by the recorder later and must not block quiz generation.
+  void preloadLiveTranscription(locale.value).catch(() => {})
   loading.value = true; error.value = ''; step.value = 0; clearInterval(interval)
   interval = setInterval(() => { if (step.value < 2) step.value++ }, 1150)
   try { await generate(); step.value = 2; clearInterval(interval); router.push(I18nManager.i18nRoute({ name: 'perguntas' })) }
