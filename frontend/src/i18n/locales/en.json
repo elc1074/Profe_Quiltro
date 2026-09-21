@@ -63,6 +63,7 @@
       "idleHint": "Explain the answer in your own words, no rush.",
       "recordingTitle": "Recording…",
       "recordingHint": "Tap to stop when you're done.",
+      "preparingTranscription": "Preparing transcription…",
       "readyTitle": "Recording ready",
       "readyHint": "You can listen back or re-record.",
       "play": "Play",

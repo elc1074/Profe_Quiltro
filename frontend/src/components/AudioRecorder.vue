@@ -42,7 +42,7 @@ async function startRecording() {
   } catch (reason) {
     await transcription?.cancel()
     transcription = null
-    error.value = reason.message || 'NÃ£o foi possÃ­vel iniciar a gravaÃ§Ã£o.'
+    error.value = reason.message || t('error.body')
   } finally {
     preparing.value = false
   }
@@ -54,7 +54,9 @@ async function stopRecording() {
     const recording = await transcription.stop()
     if (recording) emit('stop', recording)
   } catch (reason) {
-    error.value = reason.message || 'NÃ£o foi possÃ­vel finalizar a gravaÃ§Ã£o.'
+    await transcription?.cancel()
+    emit('delete')
+    error.value = reason.message || t('error.body')
   } finally {
     transcription = null
     stopTicking()
@@ -107,7 +109,7 @@ const formattedTime = computed(() => {
       </button>
       <div>
         <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.idleTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ preparing ? 'Preparando a transcriÃ§Ã£oâ€¦' : t('quiz.recorder.idleHint') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint') }}</p>
       </div>
     </template>
 
