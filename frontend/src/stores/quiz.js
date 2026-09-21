@@ -92,6 +92,10 @@ export const useQuizStore = defineStore('quiz', {
         ...recording,
       }
     },
+    updateTranscript(id, transcript) {
+      if (this.recordings[id]?.status !== 'recorded') return
+      this.recordings[id].transcript = transcript
+    },
     deleteRecording(id) {
       if (this.recordings[id]?.audioUrl) URL.revokeObjectURL(this.recordings[id].audioUrl)
       this.recordings[id] = { status: 'idle', elapsed: 0 }

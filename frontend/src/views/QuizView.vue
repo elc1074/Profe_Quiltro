@@ -75,10 +75,13 @@ function reviewFirstUnanswered() {
     <div class="mt-6">
       <AudioRecorder
         :status="currentRecording.status"
+        :question-id="quiz.currentQuestion.id"
         :audio-url="currentRecording.audioUrl"
+        :transcript="currentRecording.transcript"
         @start="quiz.startRecording(quiz.currentQuestion.id)"
         @stop="quiz.stopRecording(quiz.currentQuestion.id, $event)"
         @delete="quiz.deleteRecording(quiz.currentQuestion.id)"
+        @update-transcript="quiz.updateTranscript(quiz.currentQuestion.id, $event)"
       />
     </div>
 
