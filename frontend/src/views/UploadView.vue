@@ -26,7 +26,8 @@ function acceptFile(file) {
     return
   }
   errorMsg.value = ''
-  quiz.setFile({ name: file.name, size: file.size })
+  // The webhook needs the PDF itself, not only its metadata.
+  quiz.setFile(file)
 }
 
 function onDrop(e) {

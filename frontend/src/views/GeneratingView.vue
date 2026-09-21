@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import MascotLogo from '../components/MascotLogo.vue'
+import ErrorState from '../components/ErrorState.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -11,9 +12,11 @@ const quiz = useQuizStore()
 
 const stepKeys = ['generating.step1', 'generating.step2', 'generating.step3', 'generating.step4']
 const activeStep = ref(0)
+const error = ref('')
 let stepTimer = null
 
-onMounted(() => {
+async function generate() {
+  error.value = ''
   if (!quiz.hasFile) {
     router.replace('/enviar')
     return
@@ -22,9 +25,16 @@ onMounted(() => {
     activeStep.value = Math.min(activeStep.value + 1, stepKeys.length - 1)
   }, 800)
 
-  quiz.generateQuiz().then(() => {
+  try {
+    await quiz.generateQuiz()
     router.push('/quiz')
-  })
+  } catch (reason) {
+    error.value = reason.message || t('error.body')
+  }
+}
+
+onMounted(() => {
+  generate()
 })
 
 onBeforeUnmount(() => clearInterval(stepTimer))
@@ -32,6 +42,8 @@ onBeforeUnmount(() => clearInterval(stepTimer))
 
 <template>
   <div class="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center sm:py-28">
+    <ErrorState v-if="error" :body="error" @retry="generate" />
+    <template v-else>
     <div class="relative mb-6 grid h-24 w-24 place-items-center rounded-full bg-blush-soft dark:bg-lagoon-light/50">
       <div class="absolute inset-0 animate-spin rounded-full border-4 border-rosewood/20 border-t-rosewood" style="animation-duration: 1.4s"></div>
       <MascotLogo :size="52" />
@@ -62,5 +74,6 @@ onBeforeUnmount(() => clearInterval(stepTimer))
     </ul>
 
     <p class="mt-6 text-xs text-lagoon/45 dark:text-cream-soft/45">{{ t('generating.aiNote') }}</p>
+    </template>
   </div>
 </template>

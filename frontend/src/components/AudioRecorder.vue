@@ -1,16 +1,22 @@
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { KrokoLiveTranscription } from '../services/krokoLiveTranscription'
 
 const props = defineProps({
   status: { type: String, required: true }, // idle | recording | recorded
+  audioUrl: { type: String, default: '' },
 })
-const emit = defineEmits(['start', 'stop', 're-record', 'delete'])
+const emit = defineEmits(['start', 'stop', 'delete'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const recordSeconds = ref(0)
+const preparing = ref(false)
+const error = ref('')
+const audioElement = ref(null)
 let interval = null
+let transcription = null
 
 function startTicking() {
   recordSeconds.value = 0
@@ -19,24 +25,60 @@ function startTicking() {
 function stopTicking() {
   clearInterval(interval)
 }
-onBeforeUnmount(() => clearInterval(interval))
+onBeforeUnmount(async () => {
+  clearInterval(interval)
+  await transcription?.cancel()
+})
 
-function handleTap() {
-  if (props.status === 'idle') {
+async function startRecording() {
+  if (preparing.value) return
+  error.value = ''
+  preparing.value = true
+  try {
+    transcription = new KrokoLiveTranscription({ language: locale.value })
+    await transcription.start()
     emit('start')
     startTicking()
-  } else if (props.status === 'recording') {
-    emit('stop')
+  } catch (reason) {
+    await transcription?.cancel()
+    transcription = null
+    error.value = reason.message || 'NÃ£o foi possÃ­vel iniciar a gravaÃ§Ã£o.'
+  } finally {
+    preparing.value = false
+  }
+}
+
+async function stopRecording() {
+  if (!transcription) return
+  try {
+    const recording = await transcription.stop()
+    if (recording) emit('stop', recording)
+  } catch (reason) {
+    error.value = reason.message || 'NÃ£o foi possÃ­vel finalizar a gravaÃ§Ã£o.'
+  } finally {
+    transcription = null
     stopTicking()
   }
 }
 
-const isPlaying = ref(false)
-function togglePlay() {
-  isPlaying.value = !isPlaying.value
-  if (isPlaying.value) {
-    setTimeout(() => (isPlaying.value = false), 2200)
+async function handleTap() {
+  if (props.status === 'idle') {
+    await startRecording()
+  } else if (props.status === 'recording') {
+    await stopRecording()
   }
+}
+
+async function handleReRecord() {
+  emit('delete')
+  await startRecording()
+}
+
+const isPlaying = ref(false)
+async function togglePlay() {
+  if (!audioElement.value) return
+  if (audioElement.value.paused) await audioElement.value.play()
+  else audioElement.value.pause()
 }
 
 const formattedTime = computed(() => {
@@ -48,11 +90,13 @@ const formattedTime = computed(() => {
 
 <template>
   <div class="flex flex-col items-center gap-4 rounded-xl2 bg-blush-soft px-6 py-8 text-center dark:bg-lagoon-light/40">
+    <p v-if="error" class="text-sm font-semibold text-error" role="alert">{{ error }}</p>
     <!-- Idle -->
     <template v-if="status === 'idle'">
       <button
         type="button"
         @click="handleTap"
+        :disabled="preparing"
         class="grid h-24 w-24 place-items-center rounded-full bg-rosewood text-cream-soft shadow-soft transition active:scale-95"
         :aria-label="t('quiz.recorder.start')"
       >
@@ -63,7 +107,7 @@ const formattedTime = computed(() => {
       </button>
       <div>
         <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.idleTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ t('quiz.recorder.idleHint') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ preparing ? 'Preparando a transcriÃ§Ã£oâ€¦' : t('quiz.recorder.idleHint') }}</p>
       </div>
     </template>
 
@@ -110,7 +154,7 @@ const formattedTime = computed(() => {
       <div class="flex gap-2">
         <button
           type="button"
-          @click="$emit('re-record'); startTicking()"
+          @click="handleReRecord"
           class="rounded-full bg-misty/40 px-4 py-2 text-sm font-semibold text-lagoon transition hover:bg-misty/60 dark:bg-cream-soft/10 dark:text-cream-soft"
         >
           {{ t('quiz.recorder.reRecord') }}
@@ -123,6 +167,15 @@ const formattedTime = computed(() => {
           {{ t('quiz.recorder.delete') }}
         </button>
       </div>
+      <audio
+        v-if="audioUrl"
+        ref="audioElement"
+        :src="audioUrl"
+        class="hidden"
+        @play="isPlaying = true"
+        @pause="isPlaying = false"
+        @ended="isPlaying = false"
+      />
     </template>
   </div>
 </template>
