@@ -11,8 +11,8 @@ export default {
       colors: {
         //fundo
         cream: {
-          DEFAULT: '#FFFBF2',
-          soft: '#FFFBF2',
+          DEFAULT: '#faf9f6',
+          soft: '#faf9f6',
           dark: '#2A2116',
         },
         //destaque texto, fundo mascote
@@ -36,11 +36,11 @@ export default {
         misty: {
           DEFAULT: '#A9B7C6',
           light: '#C6D1DC',
-          dark: '#6E8296',
+          dark: '#6e8296',
         },
         lagoon: {
-          DEFAULT: '#2D3A47',
-          light: '#445264',
+          DEFAULT: '#1D2731',
+          light: '#2f4867',
           soft: '#1D2731',
         },
         success: {

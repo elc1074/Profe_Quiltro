@@ -10,6 +10,8 @@ import I18nManager from "./i18n/manager";
 
 import { useThemeStore } from './stores/theme'
 
+import {inject } from '@vercel/analytics'
+
 const app = createApp(App);
 I18nManager.init(i18n);
 
@@ -17,6 +19,8 @@ app
     .use(createPinia())
     .use(router)
     .use(i18n); 
+
+inject()
 
 app.mount('#app')
 
