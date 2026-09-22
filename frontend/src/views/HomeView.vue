@@ -30,7 +30,11 @@ const steps = [
         </BaseButton>
       </div>
       <div class="flex justify-center rounded-blob bg-blush-soft py-10 dark:bg-lagoon-light/40">
-        <MascotFull :size="200" />
+        <!--<MascotFull :size="200" />-->
+        <picture>
+          <img class="mascote_maior" src="../../public/mascote_maior.webp" alt="Descrição da imagem">
+        </picture>
+
       </div>
     </section>
 
