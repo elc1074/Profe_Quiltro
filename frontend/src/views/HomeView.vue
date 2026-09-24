@@ -32,7 +32,7 @@ const steps = [
       <div class="flex justify-center rounded-blob bg-blush-soft py-10 dark:bg-lagoon-light/40">
         <!--<MascotFull :size="220" />-->
         <picture>
-          <img class="mascote_maior max-h-[240px]" src="../../mascote_maior.webp" alt="Descrição da imagem">
+          <img class="mascote_maior max-h-[240px]" src="../../public/mascote_maior.webp" alt="Descrição da imagem">
         </picture>
 
       </div>
