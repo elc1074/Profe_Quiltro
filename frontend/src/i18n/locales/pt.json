@@ -77,6 +77,15 @@
       "start": "Gravar",
       "stop": "Parar"
     },
+    "krokoLoading": {
+      "title": "Espere alguns segundos...",
+      "hint": "O Profe Michi se distraiu no caminho da aula, espere enquanto ele carrega os materiais necessários para ouvir suas respostas.",
+      "messageLabel": "Status",
+      "defaultMessage": "Preparando os materiais.",
+      "gifAlt": "Animação de carregamento para a transcrição",
+      "gifPlaceholder": "GIF do Profe Michi",
+      "close": "Fechar janela sem interromper o carregamento"
+    },
     "prev": "Anterior",
     "next": "Próxima",
     "submit": "Enviar respostas para correção",

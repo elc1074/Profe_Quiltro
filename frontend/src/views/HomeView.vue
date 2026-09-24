@@ -15,7 +15,7 @@ const steps = [
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
+  <div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-10">
     <section class="grid items-center gap-10 sm:grid-cols-2">
       <div>
         <h1 class="max-w-md text-3xl font-semibold leading-tight text-lagoon dark:text-cream-soft sm:text-4xl">
@@ -30,9 +30,9 @@ const steps = [
         </BaseButton>
       </div>
       <div class="flex justify-center rounded-blob bg-blush-soft py-10 dark:bg-lagoon-light/40">
-        <!--<MascotFull :size="200" />-->
+        <!--<MascotFull :size="220" />-->
         <picture>
-          <img class="mascote_maior" src="../../public/mascote_maior.webp" alt="Descrição da imagem">
+          <img class="mascote_maior max-h-[240px]" src="../../mascote_maior.webp" alt="Descrição da imagem">
         </picture>
 
       </div>

@@ -2,6 +2,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KrokoLiveTranscription } from '../services/krokoLiveTranscription'
+import KrokoLoadingDialog from './AudioLoadingDialog.vue'
 
 const props = defineProps({
   status: { type: String, required: true }, // idle | recording | recorded
@@ -15,6 +16,9 @@ const { t, locale } = useI18n()
 
 const recordSeconds = ref(0)
 const preparing = ref(false)
+const showKrokoDialog = ref(false)
+const loadingMessage = ref('')
+const krokoDialogDismissed = ref(false)
 const error = ref('')
 const audioElement = ref(null)
 const liveTranscript = ref('')
@@ -37,11 +41,18 @@ async function startRecording() {
   if (preparing.value) return
   error.value = ''
   liveTranscript.value = ''
+  loadingMessage.value = ''
+  krokoDialogDismissed.value = false
+  showKrokoDialog.value = true
   preparing.value = true
   try {
     transcription = new KrokoLiveTranscription({
       language: locale.value,
       onTranscript: (transcript) => { liveTranscript.value = transcript },
+      onLoading: (message) => {
+        loadingMessage.value = message
+        if (message && !krokoDialogDismissed.value) showKrokoDialog.value = true
+      },
     })
     await transcription.start()
     emit('start')
@@ -52,6 +63,7 @@ async function startRecording() {
     error.value = reason.message || t('error.body')
   } finally {
     preparing.value = false
+    showKrokoDialog.value = false
   }
 }
 
@@ -110,6 +122,12 @@ const formattedTime = computed(() => {
 
 <template>
   <div class="flex flex-col items-center gap-4 rounded-xl2 bg-blush-soft px-6 py-8 text-center dark:bg-lagoon-light/40">
+    <KrokoLoadingDialog
+      v-if="showKrokoDialog"
+      :message="loadingMessage"
+      gif-src="/gato_borboleta_sf.gif"
+      @close="krokoDialogDismissed = true; showKrokoDialog = false"
+    />
     <p v-if="error" class="text-sm font-semibold text-error" role="alert">{{ error }}</p>
     <!-- Idle -->
     <template v-if="status === 'idle'">

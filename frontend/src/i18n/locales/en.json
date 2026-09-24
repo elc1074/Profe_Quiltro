@@ -77,6 +77,15 @@
       "start": "Record",
       "stop": "Stop"
     },
+    "krokoLoading": {
+      "title": "Wait a few seconds...",
+      "hint": "Professor Michi got distracted on his way to class, please wait while he gathers the materials he needs to hear your answers.",
+      "messageLabel": "Status",
+      "defaultMessage": "Gathering the materials.",
+      "gifAlt": "Loading animation for the transcription",
+      "gifPlaceholder": "Profe Michi's GIF",
+      "close": "Close window without interrupting loading"
+    },
     "prev": "Previous",
     "next": "Next",
     "submit": "Submit answers for grading",
