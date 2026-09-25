@@ -101,7 +101,8 @@ function startNewQuiz() {
     </div>
 
     <div class="mt-10 flex flex-col items-center gap-3 rounded-blob bg-cream py-10 text-center dark:bg-lagoon-light/30">
-      <MascotFull :size="160" />
+      <!-- <MascotFull :size="160" /> -->
+      <img class="mascote_maior max-h-[160px]" src="../../public/mascote_maior.webp" alt="Mascote">
       <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('result.mascotCaption') }}</p>
     </div>
 
