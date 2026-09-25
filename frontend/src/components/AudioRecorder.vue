@@ -125,7 +125,7 @@ const formattedTime = computed(() => {
     <KrokoLoadingDialog
       v-if="showKrokoDialog"
       :message="loadingMessage"
-      gif-src="public/gato_borboleta_sf.gif"
+      gif-src="/gato_borboleta_sf.gif"
       @close="krokoDialogDismissed = true; showKrokoDialog = false"
     />
     <p v-if="error" class="text-sm font-semibold text-error" role="alert">{{ error }}</p>
