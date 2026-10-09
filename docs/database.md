@@ -1,61 +1,103 @@
-# Banco de dados e integração
+# Integração com Supabase
 
-O Profe Quiltro usa Supabase (PostgreSQL e Supabase Auth). A estrutura do banco
-é definida em `supabase/migrations` e deve ser alterada somente por novas
-migrations versionadas.
+## Configuração
 
-## Estado atual
-
-O projeto Supabase existente já contém a estrutura inicial e recebeu as
-melhorias de `20261009_schema_hardening.sql` manualmente em 9 de outubro de
-2026. Portanto, não execute essas migrations novamente nesse mesmo projeto.
-
-Para criar outro projeto Supabase vazio, aplique as migrations em ordem
-cronológica.
-
-## Autenticação e perfil
-
-O Supabase Auth armazena e-mail e senha. Após um cadastro, a trigger
-`on_auth_user_created` executa `handle_new_user()` e cria o registro em
-`public.profiles`. O nome enviado no cadastro deve estar em
-`user_metadata.name`.
-
-O frontend pode ler e editar apenas o próprio perfil. Não há política de
-`INSERT` para `profiles`, pois a trigger cuida dessa operação.
-
-## Regras de acesso
-
-Row Level Security está habilitado em todas as tabelas públicas:
-
-- cada usuário acessa e altera somente seu `profile`;
-- cada usuário gerencia somente quizzes cujo `created_by` é seu ID;
-- perguntas são acessíveis apenas quando pertencem a um quiz do usuário;
-- tentativas e respostas são acessíveis somente ao dono da tentativa.
-
-## Dados usados pelo frontend
-
-| Recurso | Campos principais |
-| --- | --- |
-| Perfil | `id`, `name`, `created_at` |
-| Quiz | `id`, `created_by`, `title`, `language`, `topic`, `difficulty`, `source`, `created_at` |
-| Pergunta | `id`, `quiz_id`, `question_order`, `question_text`, `correct_answer`, `options` |
-| Tentativa | `id`, `user_id`, `quiz_id`, `started_at`, `finished_at`, `score`, `total_questions`, `correct_answers` |
-| Resposta | `id`, `attempt_id`, `question_id`, `answer_text`, `transcription`, `is_correct`, `evaluation` |
-
-`evaluation` é um objeto JSON e pode guardar a nota e o feedback retornados
-pelo n8n. O frontend atual envia o PDF ao n8n para gerar perguntas e solicita
-a avaliação ao finalizar o quiz; depois deve persistir quiz, perguntas,
-tentativa e respostas no Supabase.
-
-## Variáveis de ambiente do frontend
-
-No arquivo local `frontend/.env`, use somente as chaves públicas:
+No `frontend/.env` local:
 
 ```env
 VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-publica
+VITE_SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
+VITE_N8N_QUIZ_URL=SUA_URL_DO_WEBHOOK
 ```
 
-Esses valores podem ser encontrados no painel do Supabase em **Project
-Settings > API**. Nunca versione o `.env` e nunca envie ao frontend a chave
-`service_role`, a senha do banco ou credenciais do n8n.
+Usar somente a chave pública (`anon`). Nunca enviar ou versionar `service_role`,
+senha do banco ou credenciais do n8n.
+
+## Autenticação e perfil
+
+- Login e cadastro: e-mail e senha via Supabase Auth.
+- No cadastro, enviar o nome em `user_metadata.name`.
+- A trigger cria `profiles` automaticamente; não inserir perfil manualmente.
+- Perfil: ler/atualizar apenas `name` em `profiles`.
+
+## Tabelas
+
+### `profiles`
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | ID do usuário no Supabase Auth. |
+| `name` | Nome informado no cadastro. |
+| `created_at` | Data de criação do perfil. |
+
+### `quizzes`
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | ID do quiz. |
+| `created_by` | ID do usuário que criou o quiz (`user.id`). |
+| `title` | Título do quiz. |
+| `language` | Idioma: `pt`, `es` ou `en`. |
+| `topic` | Tema/assunto do material. |
+| `difficulty` | Dificuldade solicitada: `easy`, `medium` ou `hard`. |
+| `source` | Nome ou referência do PDF enviado. |
+| `created_at` | Data de criação. |
+
+### `questions`
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | ID da pergunta. |
+| `quiz_id` | Quiz ao qual a pergunta pertence. |
+| `question_order` | Posição da pergunta no quiz; não pode repetir no mesmo quiz. |
+| `question_text` | Enunciado da pergunta. |
+| `correct_answer` | Resposta esperada, quando disponível. |
+| `options` | Opções em JSON; deixar `null` para perguntas abertas. |
+| `created_at` | Data de criação. |
+
+### `quiz_attempts`
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | ID da tentativa. |
+| `user_id` | ID do estudante que respondeu (`user.id`). |
+| `quiz_id` | Quiz respondido. |
+| `started_at` | Início da tentativa. |
+| `finished_at` | Final da tentativa. |
+| `score` | Nota total obtida. |
+| `total_questions` | Quantidade de perguntas. |
+| `correct_answers` | Quantidade de respostas corretas. |
+
+### `answers`
+
+| Campo | Descrição |
+| --- | --- |
+| `id` | ID da resposta. |
+| `attempt_id` | Tentativa à qual a resposta pertence. |
+| `question_id` | Pergunta respondida. |
+| `answer_text` | Resposta textual enviada/gerada. |
+| `transcription` | Transcrição do áudio. |
+| `is_correct` | Se a resposta foi considerada correta. |
+| `evaluation` | JSON com nota, resposta esperada e feedback. |
+| `created_at` | Data de criação. |
+
+## Fluxo de persistência
+
+1. n8n gera as perguntas.
+2. Criar `quizzes` com `created_by = user.id`.
+3. Criar `questions` com `quiz_id`, `question_order` e `question_text`.
+4. Ao iniciar, criar `quiz_attempts` com `user_id = user.id` e `quiz_id`.
+5. Após a avaliação do n8n, atualizar a tentativa e criar `answers`.
+
+Em `answers.evaluation`, salvar o retorno da correção, por exemplo:
+
+```json
+{ "score": 8, "maxScore": 10, "expectedAnswer": "...", "feedback": "..." }
+```
+
+## Regras
+
+- RLS já está ativa: cada usuário só acessa seus dados.
+- `question_order` não pode repetir dentro de um quiz.
+- Uma pergunta só pode ter uma resposta por tentativa.
+- O frontend sempre usa o `user.id` autenticado em `created_by` e `user_id`.
