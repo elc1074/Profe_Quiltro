@@ -24,6 +24,7 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(ticker))
 
 const currentRecording = computed(() => quiz.recordings[quiz.currentQuestion?.id])
+const isRecording = computed(() => Object.values(quiz.recordings).some((recording) => recording.status === 'recording'))
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60)
@@ -87,17 +88,18 @@ function reviewFirstUnanswered() {
     </div>
 
     <div class="mt-8 flex items-center justify-between gap-3">
-      <BaseButton variant="ghost" :disabled="quiz.currentIndex === 0" @click="quiz.prev()">
+      <BaseButton variant="ghost" :disabled="quiz.currentIndex === 0 || isRecording" @click="quiz.prev()">
         {{ t('quiz.prev') }}
       </BaseButton>
       <BaseButton
         v-if="quiz.currentIndex < quiz.totalQuestions - 1"
         variant="secondary"
+        :disabled="isRecording"
         @click="quiz.next()"
       >
         {{ t('quiz.next') }}
       </BaseButton>
-      <BaseButton v-else variant="primary" @click="handleSubmitClick">
+      <BaseButton v-else variant="primary" :disabled="isRecording" @click="handleSubmitClick">
         {{ t('quiz.submit') }}
       </BaseButton>
     </div>

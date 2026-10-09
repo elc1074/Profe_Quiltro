@@ -5,9 +5,8 @@ import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import MascotLogo from '../components/MascotLogo.vue'
 import ErrorState from '../components/ErrorState.vue'
-import { preloadLiveTranscription } from '../services/krokoLiveTranscription'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
 const quiz = useQuizStore()
 
@@ -22,10 +21,6 @@ async function generate() {
     router.replace('/enviar')
     return
   }
-
-  // Download the speech model while n8n generates the questions. A failure
-  // is handled by the recorder later and must not block quiz generation.
-  void preloadLiveTranscription(locale.value).catch(() => {})
 
   stepTimer = setInterval(() => {
     activeStep.value = Math.min(activeStep.value + 1, stepKeys.length - 1)

@@ -4,6 +4,7 @@ const CACHE_NAME = 'kroko-sdk'
 const SAMPLE_RATE = 16_000
 
 const recognizers = new Map()
+const modelPrefetches = new Map()
 
 function normaliseLanguage(language) {
   return language.toLowerCase().split(/[-_]/)[0]
@@ -112,6 +113,25 @@ async function getRecognizer(language, onLoading) {
 // recordings reuse the recognizer cached by language above.
 export async function preloadLiveTranscription(language) {
   await getRecognizer(language)
+}
+
+// Downloads and stores model files without loading the SDK worker. The worker
+// and recognizer stay deferred until the student chooses to start a new quiz.
+export async function precacheLiveTranscriptionModel(language) {
+  const normalizedLanguage = normaliseLanguage(language)
+  if (!modelPrefetches.has(normalizedLanguage)) {
+    modelPrefetches.set(normalizedLanguage, (async () => {
+      const model = await getCommunityStreamingModel(normalizedLanguage)
+      await unpackModel(model.url)
+    })())
+  }
+
+  try {
+    await modelPrefetches.get(normalizedLanguage)
+  } catch (error) {
+    modelPrefetches.delete(normalizedLanguage)
+    throw error
+  }
 }
 
 function downsample(samples, inputSampleRate) {

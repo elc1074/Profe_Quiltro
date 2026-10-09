@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KrokoLiveTranscription } from '../services/krokoLiveTranscription'
+import { KrokoLiveTranscription, preloadLiveTranscription } from '../services/krokoLiveTranscription'
 import KrokoLoadingDialog from './AudioLoadingDialog.vue'
 
 const props = defineProps({
@@ -24,6 +24,9 @@ const audioElement = ref(null)
 const liveTranscript = ref('')
 const textAnswer = ref('')
 const textMode = ref(false)
+const audioReady = ref(false)
+const audioPreparing = ref(true)
+const finalizingTranscript = ref(false)
 let interval = null
 let transcription = null
 
@@ -39,8 +42,22 @@ onBeforeUnmount(async () => {
   await transcription?.cancel()
 })
 
+onMounted(async () => {
+  try {
+    // This normally shares the preload started on the quiz-generation screen.
+    // Keeping it here also covers direct navigation or a page refresh.
+    await preloadLiveTranscription(locale.value)
+    audioReady.value = true
+  } catch {
+    // Starting a recording will surface the actionable error; text remains available.
+  } finally {
+    audioPreparing.value = false
+    audioReady.value = true
+  }
+})
+
 async function startRecording() {
-  if (preparing.value) return
+  if (preparing.value || !audioReady.value) return
   error.value = ''
   liveTranscript.value = ''
   loadingMessage.value = ''
@@ -70,7 +87,8 @@ async function startRecording() {
 }
 
 async function stopRecording() {
-  if (!transcription) return
+  if (!transcription || finalizingTranscript.value) return
+  finalizingTranscript.value = true
   try {
     const recording = await transcription.stop()
     if (recording) {
@@ -86,6 +104,7 @@ async function stopRecording() {
   } finally {
     transcription = null
     stopTicking()
+    finalizingTranscript.value = false
   }
 }
 
@@ -171,7 +190,7 @@ const formattedTime = computed(() => {
       <button
         type="button"
         @click="handleTap"
-        :disabled="preparing"
+        :disabled="preparing || !audioReady"
         class="grid h-24 w-24 place-items-center rounded-full bg-rosewood text-cream-soft shadow-soft transition active:scale-95"
         :aria-label="t('quiz.recorder.start')"
       >
@@ -182,7 +201,7 @@ const formattedTime = computed(() => {
       </button>
       <div>
         <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.idleTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ audioPreparing ? t('quiz.recorder.preparingAudio') : preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint') }}</p>
       </div>
       <button type="button" @click="textMode = true" class="text-sm font-semibold text-rosewood underline underline-offset-4 transition hover:opacity-75">
         {{ t('quiz.recorder.answerByText') }}
@@ -203,8 +222,8 @@ const formattedTime = computed(() => {
         </svg>
       </button>
       <div>
-        <p class="font-display font-semibold text-error">{{ t('quiz.recorder.recordingTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ t('quiz.recorder.recordingHint') }}</p>
+        <p class="font-display font-semibold text-error">{{ finalizingTranscript ? t('quiz.recorder.finalizingTitle') : t('quiz.recorder.recordingTitle') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ finalizingTranscript ? t('quiz.recorder.finalizingHint') : t('quiz.recorder.recordingHint') }}</p>
         <p class="mt-1 font-mono text-lg text-lagoon dark:text-cream-soft">{{ formattedTime }}</p>
       </div>
       <div class="w-full max-w-xl rounded-lg bg-cream-soft/80 p-3 text-left dark:bg-lagoon-soft/60" aria-live="polite">
