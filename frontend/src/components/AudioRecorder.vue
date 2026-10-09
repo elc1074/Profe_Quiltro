@@ -1,8 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KrokoLiveTranscription, preloadLiveTranscription } from '../services/krokoLiveTranscription'
-import KrokoLoadingDialog from './AudioLoadingDialog.vue'
+import { KrokoLiveTranscription, isLiveTranscriptionSupported, preloadLiveTranscription } from '../services/krokoLiveTranscription'
 
 const props = defineProps({
   status: { type: String, required: true }, // idle | recording | recorded
@@ -16,9 +15,6 @@ const { t, locale } = useI18n()
 
 const recordSeconds = ref(0)
 const preparing = ref(false)
-const showKrokoDialog = ref(false)
-const loadingMessage = ref('')
-const krokoDialogDismissed = ref(false)
 const error = ref('')
 const audioElement = ref(null)
 const liveTranscript = ref('')
@@ -26,9 +22,17 @@ const textAnswer = ref('')
 const textMode = ref(false)
 const audioReady = ref(false)
 const audioPreparing = ref(true)
+const audioSupported = ref(isLiveTranscriptionSupported())
 const finalizingTranscript = ref(false)
 let interval = null
 let transcription = null
+
+watch(() => props.questionId, () => {
+  // The recorder instance is reused as the student changes questions.
+  // A typed draft belongs only to its original question.
+  textAnswer.value = ''
+  textMode.value = false
+})
 
 function startTicking() {
   recordSeconds.value = 0
@@ -43,6 +47,10 @@ onBeforeUnmount(async () => {
 })
 
 onMounted(async () => {
+  if (!audioSupported.value) {
+    audioPreparing.value = false
+    return
+  }
   try {
     // This normally shares the preload started on the quiz-generation screen.
     // Keeping it here also covers direct navigation or a page refresh.
@@ -60,18 +68,11 @@ async function startRecording() {
   if (preparing.value || !audioReady.value) return
   error.value = ''
   liveTranscript.value = ''
-  loadingMessage.value = ''
-  krokoDialogDismissed.value = false
-  showKrokoDialog.value = true
   preparing.value = true
   try {
     transcription = new KrokoLiveTranscription({
       language: locale.value,
       onTranscript: (transcript) => { liveTranscript.value = transcript },
-      onLoading: (message) => {
-        loadingMessage.value = message
-        if (message && !krokoDialogDismissed.value) showKrokoDialog.value = true
-      },
     })
     await transcription.start()
     emit('start')
@@ -82,7 +83,6 @@ async function startRecording() {
     error.value = reason.message || t('error.body')
   } finally {
     preparing.value = false
-    showKrokoDialog.value = false
   }
 }
 
@@ -151,12 +151,6 @@ const formattedTime = computed(() => {
 
 <template>
   <div class="flex flex-col items-center gap-4 rounded-xl2 bg-blush-soft px-6 py-8 text-center dark:bg-lagoon-light/40">
-    <KrokoLoadingDialog
-      v-if="showKrokoDialog"
-      :message="loadingMessage"
-      gif-src="../gato_borboleta_sf.gif"
-      @close="krokoDialogDismissed = true; showKrokoDialog = false"
-    />
     <p v-if="error" class="text-sm font-semibold text-error" role="alert">{{ error }}</p>
     <!-- Text answer -->
     <template v-if="status === 'idle' && textMode">
@@ -188,6 +182,7 @@ const formattedTime = computed(() => {
     <!-- Idle -->
     <template v-else-if="status === 'idle'">
       <button
+        v-if="audioSupported"
         type="button"
         @click="handleTap"
         :disabled="preparing || !audioReady"
@@ -200,8 +195,8 @@ const formattedTime = computed(() => {
         </svg>
       </button>
       <div>
-        <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.idleTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ audioPreparing ? t('quiz.recorder.preparingAudio') : preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint') }}</p>
+        <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ audioSupported ? t('quiz.recorder.idleTitle') : t('quiz.recorder.audioUnsupportedTitle') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ audioSupported ? (audioPreparing ? t('quiz.recorder.preparingAudio') : preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint')) : t('quiz.recorder.audioUnsupportedHint') }}</p>
       </div>
       <button type="button" @click="textMode = true" class="text-sm font-semibold text-rosewood underline underline-offset-4 transition hover:opacity-75">
         {{ t('quiz.recorder.answerByText') }}
@@ -281,7 +276,7 @@ const formattedTime = computed(() => {
           @click="handleDelete"
           class="rounded-full bg-error/10 px-4 py-2 text-sm font-semibold text-error transition hover:bg-error/20"
         >
-          {{ t('quiz.recorder.delete') }}
+          {{ audioUrl ? t('quiz.recorder.delete') : t('quiz.recorder.deleteTextAnswer') }}
         </button>
       </div>
       <audio

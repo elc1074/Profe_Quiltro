@@ -38,7 +38,11 @@
     "questionCountNote": "Por ahora cada quiz tiene 5 preguntas. Pronto podrás elegir entre 5 o 10.",
     "cta": "Generar quiz",
     "noFileHint": "Sube un PDF para continuar",
-    "invalidType": "Ese archivo no es un PDF. Intenta con otro."
+    "invalidType": "Ese archivo no es un PDF. Intenta con otro.",
+    "audioPreparing": "Preparando las respuestas por audio mientras eliges el material…",
+    "audioReady": "Las respuestas por audio están listas.",
+    "audioUnavailable": "No se pudieron preparar las respuestas por audio. Aún puedes responder por texto.",
+    "audioUnsupported": "Tu navegador no admite la transcripción por audio. Puedes continuar respondiendo por escrito."
   },
   "generating": {
     "title": "Preparando tus preguntas",
@@ -71,6 +75,8 @@
       "recordingHint": "Toca para detener cuando termines.",
       "preparingTranscription": "Preparando la transcripci\u00f3n\u2026",
       "preparingAudio": "Preparando el audio para ti…",
+      "audioUnsupportedTitle": "Respuestas por audio no disponibles",
+      "audioUnsupportedHint": "Tu navegador no admite las funciones necesarias para transcribir audio. Responde por escrito.",
       "finalizingTitle": "Finalizando la transcripción…",
       "finalizingHint": "Espera un momento para guardar tu respuesta completa.",
       "liveTranscriptTitle": "Transcripción en vivo",
@@ -87,6 +93,7 @@
       "pause": "Pausar",
       "reRecord": "Regrabar",
       "delete": "Eliminar grabación",
+      "deleteTextAnswer": "Eliminar respuesta",
       "start": "Grabar",
       "stop": "Detener"
     },

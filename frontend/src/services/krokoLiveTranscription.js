@@ -4,10 +4,25 @@ const CACHE_NAME = 'kroko-sdk'
 const SAMPLE_RATE = 16_000
 
 const recognizers = new Map()
-const modelPrefetches = new Map()
+const modelParts = new Map()
 
 function normaliseLanguage(language) {
   return language.toLowerCase().split(/[-_]/)[0]
+}
+
+export function isLiveTranscriptionSupported() {
+  return typeof window !== 'undefined'
+    && typeof navigator !== 'undefined'
+    && !!navigator.mediaDevices?.getUserMedia
+    && typeof window.AudioContext === 'function'
+    && typeof window.Worker === 'function'
+    && typeof window.caches?.open === 'function'
+}
+
+function assertLiveTranscriptionSupport() {
+  if (!isLiveTranscriptionSupported()) {
+    throw new Error('Este navegador não oferece suporte à transcrição por áudio.')
+  }
 }
 
 async function getCommunityStreamingModel(language) {
@@ -81,13 +96,27 @@ async function unpackModel(modelUrl) {
   ])
 }
 
+function getModelParts(language) {
+  const normalizedLanguage = normaliseLanguage(language)
+  if (!modelParts.has(normalizedLanguage)) {
+    modelParts.set(normalizedLanguage, (async () => {
+      const model = await getCommunityStreamingModel(normalizedLanguage)
+      return unpackModel(model.url)
+    })())
+  }
+
+  return modelParts.get(normalizedLanguage).catch((error) => {
+    modelParts.delete(normalizedLanguage)
+    throw error
+  })
+}
+
 async function getRecognizer(language, onLoading) {
   const normalizedLanguage = normaliseLanguage(language)
   if (!recognizers.has(normalizedLanguage)) {
     recognizers.set(normalizedLanguage, (async () => {
       onLoading?.('Baixando o modelo de transcrição…')
-      const model = await getCommunityStreamingModel(normalizedLanguage)
-      const [encoder, decoder, joiner, tokens] = await unpackModel(model.url)
+      const [encoder, decoder, joiner, tokens] = await getModelParts(normalizedLanguage)
 
       onLoading?.('Preparando a transcrição local…')
       const { KrokoWorker } = await import('@/vendor/kroko-sdk.js')
@@ -112,26 +141,15 @@ async function getRecognizer(language, onLoading) {
 // Starts the download and initialization ahead of recording. Subsequent
 // recordings reuse the recognizer cached by language above.
 export async function preloadLiveTranscription(language) {
+  assertLiveTranscriptionSupport()
   await getRecognizer(language)
 }
 
 // Downloads and stores model files without loading the SDK worker. The worker
 // and recognizer stay deferred until the student chooses to start a new quiz.
 export async function precacheLiveTranscriptionModel(language) {
-  const normalizedLanguage = normaliseLanguage(language)
-  if (!modelPrefetches.has(normalizedLanguage)) {
-    modelPrefetches.set(normalizedLanguage, (async () => {
-      const model = await getCommunityStreamingModel(normalizedLanguage)
-      await unpackModel(model.url)
-    })())
-  }
-
-  try {
-    await modelPrefetches.get(normalizedLanguage)
-  } catch (error) {
-    modelPrefetches.delete(normalizedLanguage)
-    throw error
-  }
+  assertLiveTranscriptionSupport()
+  await getModelParts(language)
 }
 
 function downsample(samples, inputSampleRate) {
@@ -207,9 +225,7 @@ export class KrokoLiveTranscription {
   }
 
   async start() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Este navegador não permite usar o microfone.')
-    }
+    assertLiveTranscriptionSupport()
 
     this.onLoading?.('Preparando o microfone…')
     this.recognizer = await getRecognizer(this.language, this.onLoading)

@@ -1,17 +1,36 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import BaseButton from '../components/BaseButton.vue'
+import { isLiveTranscriptionSupported, preloadLiveTranscription } from '../services/krokoLiveTranscription'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const quiz = useQuizStore()
 
 const isDragging = ref(false)
 const errorMsg = ref('')
 const inputRef = ref(null)
+const preparingSpeech = ref(true)
+const speechUnavailable = ref(false)
+const speechUnsupported = ref(!isLiveTranscriptionSupported())
+
+onMounted(async () => {
+  if (speechUnsupported.value) {
+    preparingSpeech.value = false
+    return
+  }
+  try {
+    // This covers every path into a new quiz, including the result screen.
+    await preloadLiveTranscription(locale.value)
+  } catch {
+    speechUnavailable.value = true
+  } finally {
+    preparingSpeech.value = false
+  }
+})
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`
@@ -53,6 +72,14 @@ function goGenerate() {
   <div class="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
     <h1 class="text-2xl font-semibold text-lagoon dark:text-cream-soft sm:text-3xl">{{ t('upload.title') }}</h1>
     <p class="mt-2 text-lagoon/65 dark:text-cream-soft/65">{{ t('upload.subtitle') }}</p>
+    <p
+      class="mt-3 flex items-center gap-2 text-sm"
+      :class="speechUnavailable ? 'text-warning' : 'text-lagoon/60 dark:text-cream-soft/60'"
+      role="status"
+    >
+      <span v-if="preparingSpeech" class="h-2 w-2 animate-pulse rounded-full bg-rosewood"></span>
+      {{ speechUnsupported ? t('upload.audioUnsupported') : speechUnavailable ? t('upload.audioUnavailable') : preparingSpeech ? t('upload.audioPreparing') : t('upload.audioReady') }}
+    </p>
 
     <div
       class="mt-8 rounded-blob border-2 border-dashed p-10 text-center transition-colors"
