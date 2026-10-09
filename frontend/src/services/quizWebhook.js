@@ -1,3 +1,16 @@
+import i18n from '../i18n'
+
+const WEBHOOK_TIMEOUT_MS = 45_000
+
+function erroTraduzido(chave, parametros) {
+  return new Error(i18n.global.t(chave, parametros))
+}
+
+function registrarFalhaWebhook(contexto, erro) {
+  // Mantém o erro original disponível para suporte sem exibi-lo ao estudante.
+  console.error(`Webhook ${contexto} failed`, erro)
+}
+
 function normalizarPerguntas(resposta) {
   const lista = Array.isArray(resposta)
     ? resposta
@@ -13,25 +26,25 @@ function normalizarPerguntas(resposta) {
     .filter((item) => typeof item.pergunta === 'string' && item.pergunta.trim())
 }
 
-function normalizarJson(valor, mensagemDeErro) {
+function normalizarJson(valor, chaveDeErro) {
   if (typeof valor !== 'string') return valor
 
   try {
     return JSON.parse(valor)
   } catch {
-    throw new Error(mensagemDeErro)
+    throw erroTraduzido(chaveDeErro)
   }
 }
 
 function normalizarAvaliacao(resposta) {
   const avaliacao = normalizarJson(
     resposta?.output ?? resposta,
-    'O n8n retornou uma avaliação em formato inválido.',
+    'error.webhook.invalidEvaluation',
   )
   const respostas = avaliacao?.answers ?? avaliacao?.respostas
 
   if (!Array.isArray(respostas)) {
-    throw new Error('O n8n não retornou as avaliações das respostas.')
+    throw erroTraduzido('error.webhook.missingEvaluation')
   }
 
   return {
@@ -50,25 +63,54 @@ function normalizarAvaliacao(resposta) {
 
 function urlDoWebhook() {
   const url = import.meta.env.VITE_N8N_QUIZ_URL
-  if (!url) throw new Error('A URL do webhook n8n não foi configurada.')
+  if (!url) throw erroTraduzido('error.webhook.notConfigured')
   return url
 }
 
 async function enviarAoWebhook(formulario) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS)
   let resposta
+
   try {
-    resposta = await fetch(urlDoWebhook(), { method: 'POST', body: formulario })
-  } catch {
-    throw new Error('Não foi possível acessar o webhook. Verifique a URL e a configuração de CORS.')
+    resposta = await fetch(urlDoWebhook(), {
+      method: 'POST',
+      body: formulario,
+      signal: controller.signal,
+    })
+  } catch (erro) {
+    registrarFalhaWebhook('request', erro)
+    if (erro?.name === 'AbortError') throw erroTraduzido('error.webhook.timeout')
+
+    // O navegador não revela se foi CORS, DNS, certificado, extensão ou rede.
+    throw erroTraduzido('error.webhook.connection')
+  } finally {
+    clearTimeout(timeout)
   }
 
-  if (!resposta.ok) throw new Error(`O n8n retornou o erro ${resposta.status}.`)
-  return resposta.json()
+  if (!resposta.ok) {
+    registrarFalhaWebhook(`HTTP ${resposta.status}`, new Error(resposta.statusText))
+    if (resposta.status === 401 || resposta.status === 403) {
+      throw erroTraduzido('error.webhook.accessDenied')
+    }
+    if (resposta.status === 404) throw erroTraduzido('error.webhook.notFound')
+    if (resposta.status === 413) throw erroTraduzido('error.webhook.fileTooLarge')
+    if (resposta.status === 429) throw erroTraduzido('error.webhook.tooManyRequests')
+    if (resposta.status >= 500) throw erroTraduzido('error.webhook.server')
+    throw erroTraduzido('error.webhook.requestFailed', { status: resposta.status })
+  }
+
+  try {
+    return await resposta.json()
+  } catch (erro) {
+    registrarFalhaWebhook('invalid JSON response', erro)
+    throw erroTraduzido('error.webhook.invalidResponse')
+  }
 }
 
 export async function generateQuiz(file) {
   const cabecalho = await file.slice(0, 5).text()
-  if (cabecalho !== '%PDF-') throw new Error('Selecione um arquivo PDF válido antes de gerar o quiz.')
+  if (cabecalho !== '%PDF-') throw erroTraduzido('error.webhook.invalidPdf')
 
   const formulario = new FormData()
   formulario.append('action', 'generate')
@@ -76,7 +118,7 @@ export async function generateQuiz(file) {
 
   const retorno = await enviarAoWebhook(formulario)
   const perguntas = normalizarPerguntas(retorno)
-  if (perguntas.length === 0) throw new Error('O n8n não retornou uma lista de perguntas.')
+  if (perguntas.length === 0) throw erroTraduzido('error.webhook.missingQuestions')
 
   sessionStorage.setItem('profe-quiltro-perguntas', JSON.stringify(perguntas))
 
@@ -103,7 +145,7 @@ export async function generateQuiz(file) {
 
 export async function evaluateQuiz(quiz, recordings) {
   if (!quiz?.chapter?.trim()) {
-    throw new Error('O capítulo não foi retornado ao gerar o quiz. Ajuste a resposta do fluxo generate para incluir "chapter".')
+    throw erroTraduzido('error.webhook.missingChapter')
   }
 
   const answers = quiz.questions.map((question) => ({
