@@ -23,7 +23,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => clearInterval(ticker))
 
-const currentRecording = computed(() => quiz.recordings[quiz.currentQuestion?.id])
+const activeQuestion = computed(() => quiz.currentQuestion)
+const currentRecording = computed(() => quiz.recordings[activeQuestion.value?.id] ?? { status: 'idle', elapsed: 0 })
 const isRecording = computed(() => Object.values(quiz.recordings).some((recording) => recording.status === 'recording'))
 
 function formatTime(sec) {
@@ -53,7 +54,7 @@ function reviewFirstUnanswered() {
 </script>
 
 <template>
-  <div v-if="quiz.currentQuestion" class="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+  <div v-if="activeQuestion" class="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
     <QuestionIndex
       :questions="quiz.questions"
       :recordings="quiz.recordings"
@@ -61,31 +62,33 @@ function reviewFirstUnanswered() {
       @select="quiz.goTo($event)"
     />
 
-    <div class="mt-6 flex items-center justify-between text-sm text-lagoon/55 dark:text-cream-soft/55">
-      <span>{{ t('quiz.questionLabel', { current: quiz.currentIndex + 1, total: quiz.totalQuestions }) }}</span>
-      <span class="flex items-center gap-1.5">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-        {{ t('quiz.timer') }}: {{ formatTime(currentRecording.elapsed) }}
-      </span>
-    </div>
+    <section :key="activeQuestion.id">
+      <div class="mt-6 flex items-center justify-between text-sm text-lagoon/55 dark:text-cream-soft/55">
+        <span>{{ t('quiz.questionLabel', { current: quiz.currentIndex + 1, total: quiz.totalQuestions }) }}</span>
+        <span class="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" /><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          {{ t('quiz.timer') }}: {{ formatTime(currentRecording.elapsed) }}
+        </span>
+      </div>
 
-    <h1 class="mt-3 text-xl font-semibold leading-snug text-lagoon dark:text-cream-soft sm:text-2xl">
-      {{ quiz.currentQuestion.prompt }}
-    </h1>
+      <h1 class="mt-3 text-xl font-semibold leading-snug text-lagoon dark:text-cream-soft sm:text-2xl">
+        {{ activeQuestion.prompt }}
+      </h1>
 
-    <div class="mt-6">
-      <AudioRecorder
-        :status="currentRecording.status"
-        :question-id="quiz.currentQuestion.id"
-        :audio-url="currentRecording.audioUrl"
-        :transcript="currentRecording.transcript"
-        @start="quiz.startRecording(quiz.currentQuestion.id)"
-        @stop="quiz.stopRecording(quiz.currentQuestion.id, $event)"
-        @delete="quiz.deleteRecording(quiz.currentQuestion.id)"
-        @update-transcript="quiz.updateTranscript(quiz.currentQuestion.id, $event)"
-        @submit-text="quiz.submitTextAnswer(quiz.currentQuestion.id, $event)"
-      />
-    </div>
+      <div class="mt-6">
+        <AudioRecorder
+          :status="currentRecording.status"
+          :question-id="activeQuestion.id"
+          :audio-url="currentRecording.audioUrl"
+          :transcript="currentRecording.transcript"
+          @start="quiz.startRecording(activeQuestion.id)"
+          @stop="quiz.stopRecording(activeQuestion.id, $event)"
+          @delete="quiz.deleteRecording(activeQuestion.id)"
+          @update-transcript="quiz.updateTranscript(activeQuestion.id, $event)"
+          @submit-text="quiz.submitTextAnswer(activeQuestion.id, $event)"
+        />
+      </div>
+    </section>
 
     <div class="mt-8 flex items-center justify-between gap-3">
       <BaseButton variant="ghost" :disabled="quiz.currentIndex === 0 || isRecording" @click="quiz.prev()">

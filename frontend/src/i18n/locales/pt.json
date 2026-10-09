@@ -27,7 +27,7 @@
   },
   "upload": {
     "title": "Envie o material de estudo",
-    "subtitle": "Usaremos seu PDF para gerar um quiz de 5 perguntas.",
+    "subtitle": "Configure seu quiz e usaremos seu PDF para gerar as perguntas.",
     "dropTitle": "Arraste seu PDF aqui",
     "dropSubtitle": "ou procure o arquivo no computador",
     "browse": "Escolher arquivo",
@@ -35,7 +35,14 @@
     "remove": "Remover",
     "replace": "Substituir",
     "questionCountLabel": "Perguntas neste quiz",
-    "questionCountNote": "Por enquanto cada quiz tem 5 perguntas. Em breve você poderá escolher entre 5 ou 10.",
+    "difficultyLabel": "Dificuldade",
+    "difficulty": { "easy": "Fácil", "medium": "Médio", "hard": "Difícil" },
+    "difficultyNote": {
+      "easy": "Perguntas mais diretas para revisar os conceitos principais.",
+      "medium": "Equilíbrio entre compreensão e aplicação do conteúdo.",
+      "hard": "Perguntas mais analíticas, que exigem relacionar conceitos."
+    },
+    "questionCountNote": "Escolha entre 5 e 15 perguntas.",
     "cta": "Gerar quiz",
     "noFileHint": "Envie um PDF para continuar",
     "invalidType": "Esse arquivo não é um PDF. Tente outro.",

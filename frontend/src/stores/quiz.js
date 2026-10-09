@@ -14,7 +14,9 @@ export const useQuizStore = defineStore('quiz', {
     file: null,
     chapter: '',
     questionCount: 5,
-    availableCounts: [5, 10],
+    difficulty: 'easy',
+    minQuestionCount: 5,
+    maxQuestionCount: 15,
 
     generating: false,
     generated: false,
@@ -48,6 +50,13 @@ export const useQuizStore = defineStore('quiz', {
     setFile(file) {
       this.file = file
     },
+    setQuestionCount(count) {
+      const parsedCount = Number(count)
+      this.questionCount = Math.min(this.maxQuestionCount, Math.max(this.minQuestionCount, parsedCount || this.minQuestionCount))
+    },
+    setDifficulty(difficulty) {
+      if (['easy', 'medium', 'hard'].includes(difficulty)) this.difficulty = difficulty
+    },
     removeFile() {
       this.file = null
     },
@@ -57,7 +66,10 @@ export const useQuizStore = defineStore('quiz', {
       this.result = null
 
       try {
-        const generatedQuiz = await requestQuiz(this.file)
+        const generatedQuiz = await requestQuiz(this.file, {
+          questionCount: this.questionCount,
+          difficulty: this.difficulty,
+        })
         this.chapter = generatedQuiz.chapter
         this.questionCount = generatedQuiz.questionCount
         this.questions = generatedQuiz.questions
@@ -152,6 +164,8 @@ export const useQuizStore = defineStore('quiz', {
     resetQuiz() {
       this.file = null
       this.chapter = ''
+      this.questionCount = this.minQuestionCount
+      this.difficulty = 'easy'
       this.generating = false
       this.generated = false
       this.questions = []
