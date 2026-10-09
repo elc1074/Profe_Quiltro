@@ -52,15 +52,15 @@ onMounted(async () => {
     return
   }
   try {
-    // This normally shares the preload started on the quiz-generation screen.
+    // This normally shares the preload started when the app was mounted.
     // Keeping it here also covers direct navigation or a page refresh.
     await preloadLiveTranscription(locale.value)
     audioReady.value = true
-  } catch {
-    // Starting a recording will surface the actionable error; text remains available.
+  } catch (reason) {
+    audioReady.value = false
+    error.value = reason?.message || t('error.body')
   } finally {
     audioPreparing.value = false
-    audioReady.value = true
   }
 })
 

@@ -9,7 +9,8 @@ const { t, locale } = useI18n()
 const router = useRouter()
 
 function startNewQuiz() {
-  // The model is already caching; initialize the worker while the student picks a PDF.
+  // Normally this shares the recognizer initialization started by App.vue.
+  // It also retries a failed preload before the student reaches the quiz.
   void preloadLiveTranscription(locale.value).catch(() => {})
   router.push('/enviar')
 }

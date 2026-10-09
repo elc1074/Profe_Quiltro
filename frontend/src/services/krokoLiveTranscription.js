@@ -1,10 +1,54 @@
 const KROKO_API_URL = 'https://license.kroko.ai/api/public/v1/models'
+const KROKO_MODEL_BASE_URL = 'https://huggingface.co/Banafo/Kroko-ASR/resolve/main'
+const KROKO_CATALOG_TIMEOUT_MS = 8_000
 // The Kroko worker reads these generated model-part URLs from this exact cache.
 const CACHE_NAME = 'kroko-sdk'
 const SAMPLE_RATE = 16_000
+const MODEL_PART_NAMES = ['encoder', 'decoder', 'joiner', 'tokens']
+const BUILTIN_STREAMING_MODELS = {
+  en: { name: 'Kroko-EN-Community-128-L-Streaming-001.data', file_size: 155_836_304 },
+  es: { name: 'Kroko-ES-Community-128-L-Streaming-001.data', file_size: 155_836_470 },
+  pt: { name: 'Kroko-PT-Community-128-L-Streaming-001.data', file_size: 155_836_324 },
+}
+const TRACE_STARTED_AT = typeof performance !== 'undefined' ? performance.now() : Date.now()
+const transcriptionDiagnostics = []
 
 const recognizers = new Map()
 const modelParts = new Map()
+
+function traceClock() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now()
+}
+
+function traceTranscription(event, details = {}, level = 'info') {
+  const entry = {
+    elapsedMs: Math.round(traceClock() - TRACE_STARTED_AT),
+    event,
+    ...details,
+  }
+  transcriptionDiagnostics.push(entry)
+  console[level]?.(`[Kroko +${entry.elapsedMs}ms] ${event}`, details)
+}
+
+function startTrace(event, details = {}) {
+  const startedAt = traceClock()
+  traceTranscription(`${event}:start`, details)
+  return (result = {}, level = 'info') => {
+    traceTranscription(`${event}:${level === 'error' ? 'error' : 'done'}`, {
+      ...details,
+      ...result,
+      durationMs: Math.round(traceClock() - startedAt),
+    }, level)
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.__KROKO_TRANSCRIPTION_DIAGNOSTICS__ = transcriptionDiagnostics
+}
+
+export function getLiveTranscriptionDiagnostics() {
+  return [...transcriptionDiagnostics]
+}
 
 function normaliseLanguage(language) {
   return language.toLowerCase().split(/[-_]/)[0]
@@ -26,10 +70,43 @@ function assertLiveTranscriptionSupport() {
 }
 
 async function getCommunityStreamingModel(language) {
-  const response = await fetch(KROKO_API_URL)
-  if (!response.ok) throw new Error('Não foi possível obter o modelo de transcrição.')
-
   const targetLanguage = normaliseLanguage(language)
+  const builtinModel = BUILTIN_STREAMING_MODELS[targetLanguage]
+  if (builtinModel) {
+    const model = {
+      ...builtinModel,
+      language_iso: targetLanguage.toUpperCase(),
+      streaming: true,
+      type: 'free',
+      url: `${KROKO_MODEL_BASE_URL}/${builtinModel.name}?download=true`,
+    }
+    traceTranscription('catalog.builtin', {
+      language: targetLanguage,
+      model: model.name,
+      modelBytes: model.file_size,
+    })
+    return model
+  }
+
+  // Only unknown/future locales need the remote catalog. The app's supported
+  // locales above must not be blocked by an unavailable licensing endpoint.
+  const finishCatalog = startTrace('catalog.fetch', { language: targetLanguage })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), KROKO_CATALOG_TIMEOUT_MS)
+  let response
+  try {
+    response = await fetch(KROKO_API_URL, { signal: controller.signal })
+    if (!response.ok) throw new Error('Não foi possível obter o modelo de transcrição.')
+  } catch (error) {
+    const message = error?.name === 'AbortError'
+      ? 'A consulta de modelos excedeu 8 segundos.'
+      : error?.message
+    finishCatalog({ error: message }, 'error')
+    throw new Error(message || 'Não foi possível obter o modelo de transcrição.')
+  } finally {
+    clearTimeout(timeout)
+  }
+
   const models = await response.json()
   const model = models.find((item) => (
     item.streaming
@@ -38,71 +115,129 @@ async function getCommunityStreamingModel(language) {
   ))
 
   if (!model?.url) {
+    finishCatalog({ error: `Modelo não encontrado para ${targetLanguage}` }, 'error')
     throw new Error(`Ainda não há um modelo Kroko comunitário para ${targetLanguage}.`)
   }
 
+  finishCatalog({
+    model: model.name,
+    modelBytes: model.file_size,
+    status: response.status,
+  })
   return model
 }
 
-async function fetchWithCache(url) {
-  const cache = await caches.open(CACHE_NAME)
-  let response = await cache.match(url)
-
-  if (!response) {
-    response = await fetch(url)
-    if (!response.ok) throw new Error('Não foi possível baixar o modelo de transcrição.')
-    await cache.put(url, response.clone())
-  }
-
-  return response
-}
-
-async function cacheModelPart(modelUrl, name, data) {
-  const cacheUrl = `${modelUrl}/${name}`
-  const cache = await caches.open(CACHE_NAME)
-  if (!await cache.match(cacheUrl)) {
-    await cache.put(cacheUrl, new Response(data))
-  }
-  return cacheUrl
+function getModelPartUrls(modelUrl) {
+  return MODEL_PART_NAMES.map((name) => `${modelUrl}/${name}`)
 }
 
 async function unpackModel(modelUrl) {
-  const response = await fetchWithCache(modelUrl)
-  const file = new Uint8Array(await response.arrayBuffer())
+  const finishUnpack = startTrace('model.prepare')
+  const cache = await caches.open(CACHE_NAME)
+  const partUrls = getModelPartUrls(modelUrl)
+  const finishLookup = startTrace('model.parts.lookup')
+  const cachedParts = await Promise.all(partUrls.map((url) => cache.match(url)))
+  const cacheHits = Object.fromEntries(MODEL_PART_NAMES.map((name, index) => [name, !!cachedParts[index]]))
+  finishLookup({ cacheHits })
+
+  // On subsequent visits the worker can read the already extracted files
+  // directly. Avoid reading and copying the complete 156 MB archive again.
+  if (cachedParts.every(Boolean)) {
+    // Clean up the duplicate archive left by older app versions.
+    await cache.delete(modelUrl)
+    finishUnpack({ source: 'extracted-parts-cache', cacheHits })
+    return partUrls
+  }
+
+  // Older app versions cached both the archive and its extracted parts. Reuse
+  // that archive for this migration, but do not persist it on a cold download.
+  let response = await cache.match(modelUrl)
+  let source = 'archive-cache'
+  if (!response) {
+    source = 'network'
+    const finishFetch = startTrace('model.fetch')
+    try {
+      response = await fetch(modelUrl)
+      if (!response.ok) throw new Error('Não foi possível baixar o modelo de transcrição.')
+      finishFetch({
+        status: response.status,
+        contentLength: Number(response.headers.get('content-length')) || null,
+      })
+    } catch (error) {
+      finishFetch({ error: error?.message }, 'error')
+      finishUnpack({ source, error: error?.message }, 'error')
+      throw error
+    }
+  }
+
+  const finishRead = startTrace('model.body.read', { source })
+  let file
+  try {
+    file = new Uint8Array(await response.arrayBuffer())
+    finishRead({ bytes: file.byteLength })
+  } catch (error) {
+    finishRead({ error: error?.message }, 'error')
+    finishUnpack({ source, error: error?.message }, 'error')
+    throw error
+  }
   if (file.byteLength < 4) throw new Error('O arquivo do modelo Kroko é inválido.')
 
+  const finishExtract = startTrace('model.extract', { bytes: file.byteLength })
   const headerSize = new DataView(file.buffer).getUint32(0, true)
   const payloadOffset = 4 + headerSize
   if (file.byteLength < payloadOffset) throw new Error('O arquivo do modelo Kroko está incompleto.')
 
-  const payload = file.slice(payloadOffset)
+  const payload = file.subarray(payloadOffset)
   let offset = 0
   const readPart = () => {
     if (offset + 4 > payload.length) throw new Error('O arquivo do modelo Kroko está corrompido.')
     const size = new DataView(payload.buffer, payload.byteOffset + offset, 4).getUint32(0, true)
     offset += 4
     if (offset + size > payload.length) throw new Error('O arquivo do modelo Kroko está corrompido.')
-    const part = payload.slice(offset, offset + size)
+    // A view avoids another full-size copy while the parts are persisted.
+    const part = payload.subarray(offset, offset + size)
     offset += size
     return part
   }
 
-  const [encoder, decoder, joiner, tokens] = [readPart(), readPart(), readPart(), readPart()]
-  return Promise.all([
-    cacheModelPart(modelUrl, 'encoder', encoder),
-    cacheModelPart(modelUrl, 'decoder', decoder),
-    cacheModelPart(modelUrl, 'joiner', joiner),
-    cacheModelPart(modelUrl, 'tokens', tokens),
-  ])
+  const parts = MODEL_PART_NAMES.map(() => readPart())
+  const partSizes = Object.fromEntries(MODEL_PART_NAMES.map((name, index) => [name, parts[index].byteLength]))
+  finishExtract({ headerSize, partSizes })
+
+  // Free the legacy archive before writing missing parts so upgrades do not
+  // temporarily require storage for two complete copies of the model.
+  await cache.delete(modelUrl)
+  await Promise.all(parts.map(async (part, index) => {
+    const name = MODEL_PART_NAMES[index]
+    if (cachedParts[index]) {
+      traceTranscription('model.part.cache:skip', { name, bytes: part.byteLength })
+      return
+    }
+
+    const finishPartCache = startTrace('model.part.cache', { name, bytes: part.byteLength })
+    try {
+      await cache.put(partUrls[index], new Response(part))
+      finishPartCache()
+    } catch (error) {
+      finishPartCache({ error: error?.message }, 'error')
+      throw error
+    }
+  }))
+
+  finishUnpack({ source, cacheHits, partSizes })
+  return partUrls
 }
 
 function getModelParts(language) {
   const normalizedLanguage = normaliseLanguage(language)
   if (!modelParts.has(normalizedLanguage)) {
+    traceTranscription('model.promise:create', { language: normalizedLanguage })
     modelParts.set(normalizedLanguage, (async () => {
       const model = await getCommunityStreamingModel(normalizedLanguage)
       return unpackModel(model.url)
     })())
+  } else {
+    traceTranscription('model.promise:reuse', { language: normalizedLanguage })
   }
 
   return modelParts.get(normalizedLanguage).catch((error) => {
@@ -114,20 +249,38 @@ function getModelParts(language) {
 async function getRecognizer(language, onLoading) {
   const normalizedLanguage = normaliseLanguage(language)
   if (!recognizers.has(normalizedLanguage)) {
+    const finishRecognizer = startTrace('recognizer.prepare', { language: normalizedLanguage })
     recognizers.set(normalizedLanguage, (async () => {
-      onLoading?.('Baixando o modelo de transcrição…')
-      const [encoder, decoder, joiner, tokens] = await getModelParts(normalizedLanguage)
+      try {
+        onLoading?.('Baixando o modelo de transcrição…')
+        const [encoder, decoder, joiner, tokens] = await getModelParts(normalizedLanguage)
 
-      onLoading?.('Preparando a transcrição local…')
-      const { KrokoWorker } = await import('@/vendor/kroko-sdk.js')
-      const worker = new KrokoWorker()
-      return worker.createOnlineRecognizer({
-        modelConfig: {
-          transducer: { encoder, decoder, joiner },
-          tokens,
-        },
-      })
+        onLoading?.('Preparando a transcrição local…')
+        const finishImport = startTrace('sdk.import')
+        const { KrokoWorker } = await import('@/vendor/kroko-sdk.js')
+        finishImport()
+
+        const finishWorker = startTrace('worker.create')
+        const worker = new KrokoWorker()
+        finishWorker()
+
+        const finishCreateRecognizer = startTrace('recognizer.create')
+        const recognizer = await worker.createOnlineRecognizer({
+          modelConfig: {
+            transducer: { encoder, decoder, joiner },
+            tokens,
+          },
+        })
+        finishCreateRecognizer()
+        finishRecognizer()
+        return recognizer
+      } catch (error) {
+        finishRecognizer({ error: error?.message }, 'error')
+        throw error
+      }
     })())
+  } else {
+    traceTranscription('recognizer.promise:reuse', { language: normalizedLanguage })
   }
 
   try {
@@ -142,14 +295,15 @@ async function getRecognizer(language, onLoading) {
 // recordings reuse the recognizer cached by language above.
 export async function preloadLiveTranscription(language) {
   assertLiveTranscriptionSupport()
-  await getRecognizer(language)
-}
-
-// Downloads and stores model files without loading the SDK worker. The worker
-// and recognizer stay deferred until the student chooses to start a new quiz.
-export async function precacheLiveTranscriptionModel(language) {
-  assertLiveTranscriptionSupport()
-  await getModelParts(language)
+  const normalizedLanguage = normaliseLanguage(language)
+  const finishPreload = startTrace('preload', { language: normalizedLanguage })
+  try {
+    await getRecognizer(normalizedLanguage)
+    finishPreload()
+  } catch (error) {
+    finishPreload({ error: error?.message }, 'error')
+    throw error
+  }
 }
 
 function downsample(samples, inputSampleRate) {
@@ -226,33 +380,80 @@ export class KrokoLiveTranscription {
 
   async start() {
     assertLiveTranscriptionSupport()
+    const language = normaliseLanguage(this.language)
+    const finishStart = startTrace('recording.start', { language })
 
-    this.onLoading?.('Preparando o microfone…')
-    this.recognizer = await getRecognizer(this.language, this.onLoading)
-    this.microphone = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-    })
-    this.audioContext = new AudioContext()
-    await this.audioContext.resume()
-    this.source = this.audioContext.createMediaStreamSource(this.microphone)
-    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1)
-    this.silentGain = this.audioContext.createGain()
-    this.silentGain.gain.value = 0
-    this.stream = await this.recognizer.createStream()
-    this.recording = true
+    try {
+      this.onLoading?.('Preparando o microfone…')
+      const finishRecognizerWait = startTrace('recording.recognizer.wait', { language })
+      try {
+        this.recognizer = await getRecognizer(this.language, this.onLoading)
+        finishRecognizerWait()
+      } catch (error) {
+        finishRecognizerWait({ error: error?.message }, 'error')
+        throw error
+      }
 
-    this.processor.onaudioprocess = (event) => {
-      if (!this.recording) return
-      const rawSamples = Float32Array.from(event.inputBuffer.getChannelData(0))
-      const samples = downsample(rawSamples, this.audioContext.sampleRate)
-      this.audioChunks.push(Float32Array.from(samples))
-      this.processing = this.processing.then(() => this.process(samples))
+      const finishMicrophone = startTrace('microphone.request')
+      try {
+        this.microphone = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        })
+        const track = this.microphone.getAudioTracks()[0]
+        finishMicrophone({
+          label: track?.label || null,
+          readyState: track?.readyState || null,
+        })
+      } catch (error) {
+        finishMicrophone({ error: error?.message, name: error?.name }, 'error')
+        throw error
+      }
+
+      const finishAudioContext = startTrace('audio-context.prepare')
+      try {
+        this.audioContext = new AudioContext()
+        await this.audioContext.resume()
+        finishAudioContext({
+          sampleRate: this.audioContext.sampleRate,
+          state: this.audioContext.state,
+        })
+      } catch (error) {
+        finishAudioContext({ error: error?.message }, 'error')
+        throw error
+      }
+
+      this.source = this.audioContext.createMediaStreamSource(this.microphone)
+      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1)
+      this.silentGain = this.audioContext.createGain()
+      this.silentGain.gain.value = 0
+
+      const finishStream = startTrace('recognizer.stream.create')
+      try {
+        this.stream = await this.recognizer.createStream()
+        finishStream()
+      } catch (error) {
+        finishStream({ error: error?.message }, 'error')
+        throw error
+      }
+      this.recording = true
+
+      this.processor.onaudioprocess = (event) => {
+        if (!this.recording) return
+        const rawSamples = Float32Array.from(event.inputBuffer.getChannelData(0))
+        const samples = downsample(rawSamples, this.audioContext.sampleRate)
+        this.audioChunks.push(Float32Array.from(samples))
+        this.processing = this.processing.then(() => this.process(samples))
+      }
+
+      this.source.connect(this.processor)
+      this.processor.connect(this.silentGain)
+      this.silentGain.connect(this.audioContext.destination)
+      this.onLoading?.('')
+      finishStart()
+    } catch (error) {
+      finishStart({ error: error?.message, name: error?.name }, 'error')
+      throw error
     }
-
-    this.source.connect(this.processor)
-    this.processor.connect(this.silentGain)
-    this.silentGain.connect(this.audioContext.destination)
-    this.onLoading?.('')
   }
 
   async process(samples) {
