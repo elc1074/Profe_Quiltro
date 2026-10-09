@@ -134,13 +134,15 @@ async function lerCorpoDaResposta(resposta) {
   }
 }
 
-export async function generateQuiz(file) {
+export async function generateQuiz(file, settings = {}) {
   const cabecalho = await file.slice(0, 5).text()
   if (cabecalho !== '%PDF-') throw erroTraduzido('error.webhook.invalidPdf')
 
   const formulario = new FormData()
   formulario.append('action', 'generate')
   formulario.append('locale', i18n.global.locale.value)
+  formulario.append('questionCount', String(settings.questionCount ?? 5))
+  formulario.append('difficulty', settings.difficulty ?? 'easy')
   formulario.append('data', file)
 
   const retorno = await enviarAoWebhook(formulario)

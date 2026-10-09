@@ -27,7 +27,7 @@
   },
   "upload": {
     "title": "Upload your study material",
-    "subtitle": "We'll use your PDF to generate a 5-question quiz.",
+    "subtitle": "Set up your quiz and we'll use your PDF to generate the questions.",
     "dropTitle": "Drag your PDF here",
     "dropSubtitle": "or browse your computer",
     "browse": "Choose file",
@@ -35,7 +35,14 @@
     "remove": "Remove",
     "replace": "Replace",
     "questionCountLabel": "Questions in this quiz",
-    "questionCountNote": "Right now every quiz has 5 questions. Choosing 5 or 10 is coming soon.",
+    "difficultyLabel": "Difficulty",
+    "difficulty": { "easy": "Easy", "medium": "Medium", "hard": "Hard" },
+    "difficultyNote": {
+      "easy": "More direct questions to review the main concepts.",
+      "medium": "A balance between understanding and applying the material.",
+      "hard": "More analytical questions that require connecting concepts."
+    },
+    "questionCountNote": "Choose between 5 and 15 questions.",
     "cta": "Generate quiz",
     "noFileHint": "Upload a PDF to continue",
     "invalidType": "That file isn't a PDF. Try another one.",

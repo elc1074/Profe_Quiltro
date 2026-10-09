@@ -118,21 +118,43 @@ function goGenerate() {
 
     <p v-if="errorMsg" class="mt-3 text-sm font-semibold text-error">{{ errorMsg }}</p>
 
-    <div class="mt-8 rounded-xl2 bg-cream p-5 dark:bg-lagoon-light/40">
-      <div class="flex items-center justify-between">
-        <span class="font-semibold text-lagoon dark:text-cream-soft">{{ t('upload.questionCountLabel') }}</span>
-        <div class="flex gap-2">
-          <span
-            v-for="n in quiz.availableCounts"
-            :key="n"
-            class="grid h-9 w-9 place-items-center rounded-full text-sm font-semibold"
-            :class="n === quiz.questionCount
-              ? 'bg-rosewood text-cream-soft'
-              : 'cursor-not-allowed bg-lagoon/10 text-lagoon/30 dark:bg-cream-soft/10 dark:text-cream-soft/30'"
-          >{{ n }}</span>
+    <div class="mt-8 space-y-6 rounded-xl2 bg-cream p-5 dark:bg-lagoon-light/40">
+      <fieldset>
+        <legend class="font-semibold text-lagoon dark:text-cream-soft">{{ t('upload.difficultyLabel') }}</legend>
+        <div class="mt-3 grid gap-2 sm:grid-cols-3">
+          <button
+            v-for="level in ['easy', 'medium', 'hard']"
+            :key="level"
+            type="button"
+            class="rounded-lg border px-3 py-2 text-sm font-semibold transition-colors"
+            :class="quiz.difficulty === level
+              ? 'border-rosewood bg-rosewood text-cream-soft'
+              : 'border-misty/60 text-lagoon hover:bg-misty/15 dark:text-cream-soft'"
+            :aria-pressed="quiz.difficulty === level"
+            @click="quiz.setDifficulty(level)"
+          >{{ t(`upload.difficulty.${level}`) }}</button>
         </div>
+        <p class="mt-2 text-sm text-lagoon/55 dark:text-cream-soft/55">{{ t(`upload.difficultyNote.${quiz.difficulty}`) }}</p>
+      </fieldset>
+
+      <div>
+        <div class="flex items-center justify-between gap-4">
+          <label for="question-count" class="font-semibold text-lagoon dark:text-cream-soft">{{ t('upload.questionCountLabel') }}</label>
+          <output class="grid h-9 min-w-9 place-items-center rounded-full bg-rosewood px-2 text-sm font-semibold text-cream-soft">{{ quiz.questionCount }}</output>
+        </div>
+        <input
+          id="question-count"
+          v-model.number="quiz.questionCount"
+          class="mt-4 w-full accent-rosewood"
+          type="range"
+          :min="quiz.minQuestionCount"
+          :max="quiz.maxQuestionCount"
+          step="1"
+          @change="quiz.setQuestionCount(quiz.questionCount)"
+        />
+        <div class="mt-1 flex justify-between text-xs text-lagoon/55 dark:text-cream-soft/55"><span>{{ quiz.minQuestionCount }}</span><span>{{ quiz.maxQuestionCount }}</span></div>
+        <p class="mt-2 text-sm text-lagoon/55 dark:text-cream-soft/55">{{ t('upload.questionCountNote') }}</p>
       </div>
-      <p class="mt-2 text-sm text-lagoon/55 dark:text-cream-soft/55">{{ t('upload.questionCountNote') }}</p>
     </div>
 
     <div class="mt-8 flex flex-col items-center gap-2">
