@@ -126,7 +126,24 @@
   "error": {
     "title": "Algo deu errado",
     "body": "Não conseguimos concluir essa ação. Você pode tentar novamente.",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "webhook": {
+      "notConfigured": "O serviço de perguntas não está configurado. Avise a equipe responsável.",
+      "connection": "Não foi possível conectar ao serviço de perguntas. Tente em uma janela anônima ou em outro navegador e verifique se há VPN ou bloqueadores ativos.",
+      "timeout": "O serviço demorou demais para responder. Verifique sua conexão e tente novamente.",
+      "accessDenied": "Você não tem permissão para acessar o serviço de perguntas. Avise a equipe responsável.",
+      "notFound": "Não encontramos o serviço de perguntas. Avise a equipe responsável.",
+      "fileTooLarge": "O arquivo é grande demais para processar. Tente um PDF menor.",
+      "tooManyRequests": "Há muitas solicitações neste momento. Aguarde alguns minutos e tente novamente.",
+      "server": "O serviço de perguntas teve um problema temporário. Aguarde alguns minutos e tente novamente.",
+      "requestFailed": "Não foi possível processar a solicitação (erro {status}). Tente novamente.",
+      "invalidResponse": "O serviço respondeu em um formato inesperado. Avise a equipe responsável.",
+      "invalidPdf": "O arquivo selecionado não é um PDF válido. Tente outro arquivo.",
+      "missingQuestions": "O serviço não gerou perguntas. Tente novamente.",
+      "missingChapter": "Não foi possível preparar o material para corrigir as respostas. Gere o quiz novamente.",
+      "invalidEvaluation": "O serviço retornou uma avaliação em formato inválido. Tente novamente.",
+      "missingEvaluation": "O serviço não retornou a correção das respostas. Tente novamente."
+    }
   },
   "common": {
     "back": "Voltar"

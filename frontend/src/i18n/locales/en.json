@@ -126,7 +126,24 @@
   "error": {
     "title": "Something went wrong",
     "body": "We couldn't finish this action. You can try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "webhook": {
+      "notConfigured": "The question service is not configured. Please contact the team responsible.",
+      "connection": "We couldn't connect to the question service. Try a private window or another browser, and check whether a VPN or blocker is active.",
+      "timeout": "The service took too long to respond. Check your connection and try again.",
+      "accessDenied": "You don't have permission to access the question service. Please contact the team responsible.",
+      "notFound": "We couldn't find the question service. Please contact the team responsible.",
+      "fileTooLarge": "The file is too large to process. Try a smaller PDF.",
+      "tooManyRequests": "There are too many requests right now. Wait a few minutes and try again.",
+      "server": "The question service has a temporary problem. Wait a few minutes and try again.",
+      "requestFailed": "We couldn't process the request (error {status}). Try again.",
+      "invalidResponse": "The service responded in an unexpected format. Please contact the team responsible.",
+      "invalidPdf": "The selected file is not a valid PDF. Try another file.",
+      "missingQuestions": "The service didn't generate any questions. Try again.",
+      "missingChapter": "We couldn't prepare the material to grade the answers. Generate the quiz again.",
+      "invalidEvaluation": "The service returned an evaluation in an invalid format. Try again.",
+      "missingEvaluation": "The service didn't return the answer grading. Try again."
+    }
   },
   "common": {
     "back": "Back"
