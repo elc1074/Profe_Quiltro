@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsonSchemaExample": "{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\"\n    }\n  ]\n}\n"
+        "jsonSchemaExample": "{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\",\n      \"expectedAnswer\": \"...\"\n    }\n  ]\n}\n"
       },
       "id": "eba68374-5062-4ab7-a314-2289a4e0d6d6",
       "name": "Questions Parser",
@@ -200,7 +200,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an expert teacher.\n\nBased only on the chapter text below, create exactly {{ Math.max(5, Math.min(15, Number($('Webhook').first().json.body?.questionCount) || 5)) }} questions to assess comprehension and analysis.\n\nRequested difficulty: {{ ({ easy: 'easy', medium: 'medium', hard: 'hard' }[String($('Webhook').first().json.body?.difficulty || '').toLowerCase()]) || 'easy' }}. Adapt the questions accordingly: easy questions should focus on direct recall and basic comprehension; medium questions should balance comprehension with application; hard questions should require analysis, comparison, or connections between concepts.\n\nRules:\n- Write every generated field in {{ ({ pt: 'Portuguese', es: 'Spanish', en: 'English' }[String($('Webhook').first().json.body?.locale || '').toLowerCase().split(/[-_]/)[0]]) || 'English' }}. This is mandatory even when the chapter is in another language.\n- Keep each question concise: maximum 20 words.\n- Make questions direct and unambiguous.\n- Do not repeat concepts across questions.\n- Use a mix of comprehension and analysis questions appropriate to the requested difficulty.\n\nReturn only valid JSON in this format:\n{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\"\n    }\n  ]\n}\n\n=== CHAPTER TEXT ===\n{{ $json.text }}",
+        "text": "=You are an expert teacher.\n\nBased only on the chapter text below, create exactly {{ Math.max(5, Math.min(15, Number($('Webhook').first().json.body?.questionCount) || 5)) }} questions to assess comprehension and analysis.\n\nRequested difficulty: {{ ({ easy: 'easy', medium: 'medium', hard: 'hard' }[String($('Webhook').first().json.body?.difficulty || '').toLowerCase()]) || 'easy' }}. Adapt the questions accordingly: easy questions should focus on direct recall and basic comprehension; medium questions should balance comprehension with application; hard questions should require analysis, comparison, or connections between concepts.\n\nRules:\n- Write every generated field in {{ ({ pt: 'Portuguese', es: 'Spanish', en: 'English' }[String($('Webhook').first().json.body?.locale || '').toLowerCase().split(/[-_]/)[0]]) || 'English' }}. This is mandatory even when the chapter is in another language.\n- Keep each question concise: maximum 20 words.\n- Make questions direct and unambiguous.\n- Do not repeat concepts across questions.\n- Use a mix of comprehension and analysis questions appropriate to the requested difficulty.\n- For each question, provide `expectedAnswer`: a concise, self-contained model answer based only on the chapter. This answer is the canonical answer that will be stored with the quiz and reused when it is evaluated.\n\nReturn only valid JSON in this format:\n{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\",\n      \"expectedAnswer\": \"...\"\n    }\n  ]\n}\n\n=== CHAPTER TEXT ===\n{{ $json.text }}",
         "hasOutputParser": true,
         "batching": {}
       },

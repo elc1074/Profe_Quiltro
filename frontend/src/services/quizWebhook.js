@@ -23,8 +23,15 @@ function normalizarPerguntas(resposta) {
     .map((item, indice) => ({
       id: item.id ?? item.questionId ?? indice + 1,
       pergunta: item.pergunta ?? item.question ?? item.texto,
+      respostaEsperada: item.expectedAnswer ?? item.expected_answer ?? item.respostaEsperada ?? '',
     }))
-    .filter((item) => typeof item.pergunta === 'string' && item.pergunta.trim())
+    .filter(
+      (item) =>
+        typeof item.pergunta === 'string' &&
+        item.pergunta.trim() &&
+        typeof item.respostaEsperada === 'string' &&
+        item.respostaEsperada.trim(),
+    )
 }
 
 function normalizarJson(valor, chaveDeErro) {
@@ -164,7 +171,7 @@ export async function generateQuiz(file, settings = {}) {
       maxScore: 10,
       durationSeconds: 0,
       studentAnswerLabel: 'Sem resposta',
-      expectedAnswer: '',
+      expectedAnswer: pergunta.respostaEsperada.trim(),
       feedback: '',
     })),
     totalScore: 0,

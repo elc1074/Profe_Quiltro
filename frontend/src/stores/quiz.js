@@ -143,7 +143,9 @@ export const useQuizStore = defineStore('quiz', {
             maxScore: answer?.maxScore ?? 10,
             durationSeconds: recording?.elapsed ?? 0,
             studentAnswerLabel: studentAnswer || 'Sem resposta',
-            expectedAnswer: answer?.expectedAnswer ?? '',
+            // A resposta esperada pertence Ã  pergunta gerada. NÃ£o a substituÃ­mos
+            // na correÃ§Ã£o, para que resultados e histÃ³rico usem a mesma referÃªncia.
+            expectedAnswer: question.expectedAnswer,
             feedback: answer?.feedback ?? '',
           }
         })
