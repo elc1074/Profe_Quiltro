@@ -82,6 +82,7 @@ function reviewFirstUnanswered() {
         @stop="quiz.stopRecording(quiz.currentQuestion.id, $event)"
         @delete="quiz.deleteRecording(quiz.currentQuestion.id)"
         @update-transcript="quiz.updateTranscript(quiz.currentQuestion.id, $event)"
+        @submit-text="quiz.submitTextAnswer(quiz.currentQuestion.id, $event)"
       />
     </div>
 

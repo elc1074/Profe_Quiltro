@@ -10,7 +10,7 @@ const props = defineProps({
   transcript: { type: String, default: '' },
   questionId: { type: [String, Number], required: true },
 })
-const emit = defineEmits(['start', 'stop', 'delete', 'update-transcript'])
+const emit = defineEmits(['start', 'stop', 'delete', 'update-transcript', 'submit-text'])
 
 const { t, locale } = useI18n()
 
@@ -22,6 +22,8 @@ const krokoDialogDismissed = ref(false)
 const error = ref('')
 const audioElement = ref(null)
 const liveTranscript = ref('')
+const textAnswer = ref('')
+const textMode = ref(false)
 let interval = null
 let transcription = null
 
@@ -103,7 +105,15 @@ async function handleReRecord() {
 
 function handleDelete() {
   liveTranscript.value = ''
+  textAnswer.value = ''
   emit('delete')
+}
+
+function submitTextAnswer() {
+  const answer = textAnswer.value.trim()
+  if (!answer) return
+  emit('submit-text', answer)
+  textMode.value = false
 }
 
 const isPlaying = ref(false)
@@ -129,8 +139,35 @@ const formattedTime = computed(() => {
       @close="krokoDialogDismissed = true; showKrokoDialog = false"
     />
     <p v-if="error" class="text-sm font-semibold text-error" role="alert">{{ error }}</p>
+    <!-- Text answer -->
+    <template v-if="status === 'idle' && textMode">
+      <div class="w-full max-w-xl text-left">
+        <label :for="`text-answer-${questionId}`" class="text-sm font-semibold text-lagoon dark:text-cream-soft">
+          {{ t('quiz.recorder.textAnswerTitle') }}
+        </label>
+        <textarea
+          :id="`text-answer-${questionId}`"
+          v-model="textAnswer"
+          rows="5"
+          spellcheck="true"
+          autofocus
+          class="mt-2 w-full resize-y rounded-lg border border-lagoon/15 bg-cream-soft p-3 text-sm text-lagoon outline-none transition focus:border-rosewood dark:border-cream-soft/20 dark:bg-lagoon-soft dark:text-cream-soft"
+          :placeholder="t('quiz.recorder.textAnswerPlaceholder')"
+        />
+        <p class="mt-1 text-xs text-lagoon/55 dark:text-cream-soft/55">{{ t('quiz.recorder.textAnswerHint') }}</p>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" @click="textMode = false" class="rounded-full bg-misty/40 px-4 py-2 text-sm font-semibold text-lagoon transition hover:bg-misty/60 dark:bg-cream-soft/10 dark:text-cream-soft">
+          {{ t('quiz.recorder.backToAudio') }}
+        </button>
+        <button type="button" :disabled="!textAnswer.trim()" @click="submitTextAnswer" class="rounded-full bg-rosewood px-4 py-2 text-sm font-semibold text-cream-soft transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ t('quiz.recorder.saveTextAnswer') }}
+        </button>
+      </div>
+    </template>
+
     <!-- Idle -->
-    <template v-if="status === 'idle'">
+    <template v-else-if="status === 'idle'">
       <button
         type="button"
         @click="handleTap"
@@ -147,6 +184,9 @@ const formattedTime = computed(() => {
         <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.idleTitle') }}</p>
         <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ preparing ? t('quiz.recorder.preparingTranscription') : t('quiz.recorder.idleHint') }}</p>
       </div>
+      <button type="button" @click="textMode = true" class="text-sm font-semibold text-rosewood underline underline-offset-4 transition hover:opacity-75">
+        {{ t('quiz.recorder.answerByText') }}
+      </button>
     </template>
 
     <!-- Recording -->
@@ -176,6 +216,7 @@ const formattedTime = computed(() => {
     <!-- Recorded -->
     <template v-else>
       <button
+        v-if="audioUrl"
         type="button"
         @click="togglePlay"
         class="grid h-24 w-24 place-items-center rounded-full bg-sage text-cream-soft shadow-soft transition active:scale-95"
@@ -190,12 +231,12 @@ const formattedTime = computed(() => {
         </svg>
       </button>
       <div>
-        <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ t('quiz.recorder.readyTitle') }}</p>
-        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ t('quiz.recorder.readyHint') }}</p>
+        <p class="font-display font-semibold text-lagoon dark:text-cream-soft">{{ audioUrl ? t('quiz.recorder.readyTitle') : t('quiz.recorder.textReadyTitle') }}</p>
+        <p class="text-sm text-lagoon/60 dark:text-cream-soft/60">{{ audioUrl ? t('quiz.recorder.readyHint') : t('quiz.recorder.textReadyHint') }}</p>
       </div>
       <div class="w-full max-w-xl text-left">
         <label :for="`transcript-${questionId}`" class="text-xs font-semibold text-lagoon/70 dark:text-cream-soft/70">
-          {{ t('quiz.recorder.editTranscriptTitle') }}
+          {{ audioUrl ? t('quiz.recorder.editTranscriptTitle') : t('quiz.recorder.editTextAnswerTitle') }}
         </label>
         <textarea
           :id="`transcript-${questionId}`"
@@ -205,10 +246,11 @@ const formattedTime = computed(() => {
           class="mt-1 w-full resize-y rounded-lg border border-lagoon/15 bg-cream-soft p-3 text-sm text-lagoon outline-none transition focus:border-rosewood dark:border-cream-soft/20 dark:bg-lagoon-soft dark:text-cream-soft"
           @input="$emit('update-transcript', $event.target.value)"
         />
-        <p class="mt-1 text-xs text-lagoon/55 dark:text-cream-soft/55">{{ t('quiz.recorder.editTranscriptHint') }}</p>
+        <p class="mt-1 text-xs text-lagoon/55 dark:text-cream-soft/55">{{ audioUrl ? t('quiz.recorder.editTranscriptHint') : t('quiz.recorder.editTextAnswerHint') }}</p>
       </div>
       <div class="flex gap-2">
         <button
+          v-if="audioUrl"
           type="button"
           @click="handleReRecord"
           class="rounded-full bg-misty/40 px-4 py-2 text-sm font-semibold text-lagoon transition hover:bg-misty/60 dark:bg-cream-soft/10 dark:text-cream-soft"
