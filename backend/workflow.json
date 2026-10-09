@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsonSchemaExample": "{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\",\n      \"expected_answer\": \"...\",\n      \"key_concepts\": [\"...\", \"...\"]\n    }\n  ]\n}\n"
+        "jsonSchemaExample": "{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\"\n    }\n  ]\n}\n"
       },
       "id": "eba68374-5062-4ab7-a314-2289a4e0d6d6",
       "name": "Questions Parser",
@@ -156,7 +156,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an expert examiner. Using the book chapter as the ground truth, evaluate each transcribed spoken answer. For every question give a score from 0 to 10, a max_score of 10, and concise constructive feedback. Then give an overall_score, overall_max, and a short summary.\n\n=== CHAPTER (ground truth) ===\n{{ $json.chapter }}\n\n=== QUESTIONS AND TRANSCRIBED ANSWERS (JSON) ===\n{{ $json.qa }}",
+        "text": "=You are an expert examiner. Using the book chapter as the ground truth, evaluate each transcribed spoken answer. For every question give a score from 0 to 10, a max_score of 10, and concise constructive feedback. Then give an overall_score, overall_max, and a short summary.\n\nWrite every human-readable field in {{ ({ pt: 'Portuguese', es: 'Spanish', en: 'English' }[String($('Webhook').first().json.body?.locale || '').toLowerCase().split(/[-_]/)[0]]) || 'English' }}: expectedAnswer, feedback, and summary. This is mandatory even when the chapter, questions, or answers are in another language.\n\n=== CHAPTER (ground truth) ===\n{{ $json.chapter }}\n\n=== QUESTIONS AND TRANSCRIBED ANSWERS (JSON) ===\n{{ $json.qa }}",
         "hasOutputParser": true,
         "batching": {}
       },
@@ -200,7 +200,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are an expert teacher.\n\nBased only on the chapter text below, create exactly 5 questions to assess comprehension and analysis.\n\nRules:\n- Write in the same language as the chapter.\n- Keep each question concise: maximum 20 words.\n- Make questions direct and unambiguous.\n- Do not repeat concepts across questions.\n- Use a mix of comprehension and analysis questions.\n- For each question, provide:\n  1. the question;\n  2. an expected answer, maximum 60 words;\n  3. key concepts that must be present in a correct answer.\n\nReturn only valid JSON in this format:\n{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\",\n      \"expected_answer\": \"...\",\n      \"key_concepts\": [\"...\", \"...\"]\n    }\n  ]\n}\n\n=== CHAPTER TEXT ===\n{{ $json.text }}",
+        "text": "=You are an expert teacher.\n\nBased only on the chapter text below, create exactly 5 questions to assess comprehension and analysis.\n\nRules:\n- Write every generated field in {{ ({ pt: 'Portuguese', es: 'Spanish', en: 'English' }[String($('Webhook').first().json.body?.locale || '').toLowerCase().split(/[-_]/)[0]]) || 'English' }}. This is mandatory even when the chapter is in another language.\n- Keep each question concise: maximum 20 words.\n- Make questions direct and unambiguous.\n- Do not repeat concepts across questions.\n- Use a mix of comprehension and analysis questions.\n\nReturn only valid JSON in this format:\n{\n  \"questions\": [\n    {\n      \"id\": 1,\n      \"question\": \"...\"\n    }\n  ]\n}\n\n=== CHAPTER TEXT ===\n{{ $json.text }}",
         "hasOutputParser": true,
         "batching": {}
       },

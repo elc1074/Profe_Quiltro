@@ -155,6 +155,7 @@
       "notFound": "We couldn't find the question service. Please contact the team responsible.",
       "fileTooLarge": "The file is too large to process. Try a smaller PDF.",
       "tooManyRequests": "There are too many requests right now. Wait a few minutes and try again.",
+      "aiUnavailable": "The AI service is temporarily unavailable. Wait a few minutes and try again.",
       "server": "The question service has a temporary problem. Wait a few minutes and try again.",
       "requestFailed": "We couldn't process the request (error {status}). Try again.",
       "invalidResponse": "The service responded in an unexpected format. Please contact the team responsible.",

@@ -17,6 +17,8 @@ let stepTimer = null
 
 async function generate() {
   error.value = ''
+  clearInterval(stepTimer)
+  activeStep.value = 0
   if (!quiz.hasFile) {
     router.replace('/enviar')
     return
@@ -31,6 +33,9 @@ async function generate() {
     router.push('/quiz')
   } catch (reason) {
     error.value = reason.message || t('error.body')
+  } finally {
+    clearInterval(stepTimer)
+    stepTimer = null
   }
 }
 

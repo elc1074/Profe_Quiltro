@@ -155,6 +155,7 @@
       "notFound": "No encontramos el servicio de preguntas. Avísale al equipo responsable.",
       "fileTooLarge": "El archivo es demasiado grande para procesarlo. Intenta con un PDF más pequeño.",
       "tooManyRequests": "Hay muchas solicitudes en este momento. Espera unos minutos e intenta nuevamente.",
+      "aiUnavailable": "El servicio de IA no está disponible temporalmente. Espera unos minutos e intenta nuevamente.",
       "server": "El servicio de preguntas tuvo un problema temporal. Espera unos minutos e intenta nuevamente.",
       "requestFailed": "No se pudo procesar la solicitud (error {status}). Intenta nuevamente.",
       "invalidResponse": "El servicio respondió con un formato inesperado. Avísale al equipo responsable.",

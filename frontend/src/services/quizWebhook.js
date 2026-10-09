@@ -1,6 +1,7 @@
 import i18n from '../i18n'
 
 const WEBHOOK_TIMEOUT_MS = 45_000
+const AI_UNAVAILABLE_PATTERN = /(?:gemini|generative ai|language model|\bllm\b|\bai\b)[\s\S]{0,120}(?:unavailable|overloaded|temporar|quota|rate.?limit|resource.?exhausted)|(?:unavailable|overloaded|temporar|quota|rate.?limit|resource.?exhausted)[\s\S]{0,120}(?:gemini|generative ai|language model|\bllm\b|\bai\b)|unexpected end of json input/i
 
 function erroTraduzido(chave, parametros) {
   return new Error(i18n.global.t(chave, parametros))
@@ -88,22 +89,47 @@ async function enviarAoWebhook(formulario) {
     clearTimeout(timeout)
   }
 
+  const corpo = await lerCorpoDaResposta(resposta)
+
   if (!resposta.ok) {
-    registrarFalhaWebhook(`HTTP ${resposta.status}`, new Error(resposta.statusText))
+    registrarFalhaWebhook(
+      `HTTP ${resposta.status}`,
+      new Error(`${resposta.statusText}: ${corpo.slice(0, 500)}`),
+    )
     if (resposta.status === 401 || resposta.status === 403) {
       throw erroTraduzido('error.webhook.accessDenied')
     }
     if (resposta.status === 404) throw erroTraduzido('error.webhook.notFound')
     if (resposta.status === 413) throw erroTraduzido('error.webhook.fileTooLarge')
+    if (erroIndicaIaIndisponivel(corpo)) throw erroTraduzido('error.webhook.aiUnavailable')
     if (resposta.status === 429) throw erroTraduzido('error.webhook.tooManyRequests')
     if (resposta.status >= 500) throw erroTraduzido('error.webhook.server')
     throw erroTraduzido('error.webhook.requestFailed', { status: resposta.status })
   }
 
+  if (!corpo.trim()) {
+    registrarFalhaWebhook('empty response', new Error(`HTTP ${resposta.status}`))
+    throw erroTraduzido('error.webhook.invalidResponse')
+  }
+
   try {
-    return await resposta.json()
+    return JSON.parse(corpo)
   } catch (erro) {
     registrarFalhaWebhook('invalid JSON response', erro)
+    if (erroIndicaIaIndisponivel(corpo)) throw erroTraduzido('error.webhook.aiUnavailable')
+    throw erroTraduzido('error.webhook.invalidResponse')
+  }
+}
+
+function erroIndicaIaIndisponivel(corpo) {
+  return AI_UNAVAILABLE_PATTERN.test(corpo)
+}
+
+async function lerCorpoDaResposta(resposta) {
+  try {
+    return await resposta.text()
+  } catch (erro) {
+    registrarFalhaWebhook('unreadable response', erro)
     throw erroTraduzido('error.webhook.invalidResponse')
   }
 }
@@ -114,6 +140,7 @@ export async function generateQuiz(file) {
 
   const formulario = new FormData()
   formulario.append('action', 'generate')
+  formulario.append('locale', i18n.global.locale.value)
   formulario.append('data', file)
 
   const retorno = await enviarAoWebhook(formulario)
@@ -156,6 +183,7 @@ export async function evaluateQuiz(quiz, recordings) {
 
   const formulario = new FormData()
   formulario.append('action', 'evaluate')
+  formulario.append('locale', i18n.global.locale.value)
   formulario.append('chapter', quiz.chapter)
   formulario.append('answers', JSON.stringify(answers))
 
